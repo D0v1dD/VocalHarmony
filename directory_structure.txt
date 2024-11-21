@@ -1,0 +1,88 @@
+.
+├── app
+│   ├── build
+│   │   ├── generated
+│   │   │   ├── ap_generated_sources
+│   │   │   ├── data_binding_base_class_source_out
+│   │   │   └── res
+│   │   ├── intermediates
+│   │   │   ├── aar_metadata_check
+│   │   │   ├── annotation_processor_list
+│   │   │   ├── apk
+│   │   │   ├── apk_ide_redirect_file
+│   │   │   ├── app_metadata
+│   │   │   ├── assets
+│   │   │   ├── compatible_screen_manifest
+│   │   │   ├── compile_and_runtime_not_namespaced_r_class_jar
+│   │   │   ├── compile_app_classes_jar
+│   │   │   ├── compressed_assets
+│   │   │   ├── data_binding_base_class_log_artifact
+│   │   │   ├── data_binding_dependency_artifacts
+│   │   │   ├── data_binding_layout_info_type_merge
+│   │   │   ├── data_binding_layout_info_type_package
+│   │   │   ├── desugar_graph
+│   │   │   ├── dex
+│   │   │   ├── dex_archive_input_jar_hashes
+│   │   │   ├── dex_number_of_buckets_file
+│   │   │   ├── duplicate_classes_check
+│   │   │   ├── external_file_lib_dex_archives
+│   │   │   ├── external_libs_dex_archive
+│   │   │   ├── external_libs_dex_archive_with_artifact_transforms
+│   │   │   ├── incremental
+│   │   │   ├── javac
+│   │   │   ├── linked_resources_binary_format
+│   │   │   ├── local_only_symbol_list
+│   │   │   ├── manifest_merge_blame_file
+│   │   │   ├── merged_java_res
+│   │   │   ├── merged_jni_libs
+│   │   │   ├── merged_manifest
+│   │   │   ├── merged_manifests
+│   │   │   ├── merged_res
+│   │   │   ├── merged_res_blame_folder
+│   │   │   ├── merged_shaders
+│   │   │   ├── mixed_scope_dex_archive
+│   │   │   ├── navigation_json
+│   │   │   ├── nested_resources_validation_report
+│   │   │   ├── packaged_manifests
+│   │   │   ├── packaged_res
+│   │   │   ├── project_dex_archive
+│   │   │   ├── runtime_symbol_list
+│   │   │   ├── signing_config_versions
+│   │   │   ├── source_set_path_map
+│   │   │   ├── stable_resource_ids_file
+│   │   │   ├── sub_project_dex_archive
+│   │   │   ├── symbol_list_with_package_name
+│   │   │   ├── tmp
+│   │   │   └── validate_signing_config
+│   │   ├── outputs
+│   │   │   ├── apk
+│   │   │   └── logs
+│   │   └── tmp
+│   │       ├── compileDebugAndroidTestJavaWithJavac
+│   │       ├── compileDebugJavaWithJavac
+│   │       └── compileDebugUnitTestJavaWithJavac
+│   ├── build.gradle.kts
+│   ├── proguard-rules.pro
+│   └── src
+│       ├── androidTest
+│       │   └── java
+│       ├── main
+│       │   ├── AndroidManifest.xml
+│       │   ├── java
+│       │   └── res
+│       └── test
+│           └── java
+├── build.gradle.kts
+├── directory_structure.txt
+├── gradle
+│   ├── libs.versions.toml
+│   └── wrapper
+│       ├── gradle-wrapper.jar
+│       └── gradle-wrapper.properties
+├── gradle.properties
+├── gradlew
+├── gradlew.bat
+├── local.properties
+└── settings.gradle.kts
+
+73 directories, 13 files
