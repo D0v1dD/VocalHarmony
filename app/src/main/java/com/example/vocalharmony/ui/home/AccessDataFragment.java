@@ -1,4 +1,4 @@
-package com.example.vocalharmony.ui.data;
+package com.example.vocalharmony.ui.home;
 
 import android.os.Bundle;
 import android.view.LayoutInflater;

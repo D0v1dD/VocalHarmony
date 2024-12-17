@@ -15,6 +15,10 @@ import androidx.core.content.ContextCompat;
 import com.example.vocalharmony.R;
 
 public class SNRBar extends View {
+    // Constants to define how SNR maps to the bar's height
+    private static final float SNR_OFFSET = 20f; // Offset to shift SNR range
+    private static final float SNR_DIVISOR = 100f; // Divisor to normalize the SNR into [0,1] range
+
     private float currentSNR = 0;
     private float maxSNR = 0;
     private Paint snrPaint;
@@ -40,13 +44,16 @@ public class SNRBar extends View {
         init(context, attrs);
     }
 
+    /**
+     * Initializes the paints and colors for the SNR bar.
+     */
     private void init(Context context, AttributeSet attrs) {
         snrPaint = new Paint();
         maxSNRPaint = new Paint();
-        textPaint = new Paint();
+        textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
         if (isInEditMode()) {
-            // Provide hardcoded colors for the editor
+            // Hardcoded colors for preview in layout editor
             startColor = 0xFF00FF00; // Green
             endColor = 0xFF0000FF;   // Blue
             maxSNRPaint.setColor(0xFFFF0000); // Red
@@ -56,7 +63,6 @@ public class SNRBar extends View {
             maxSNRPaint.setColor(ContextCompat.getColor(context, R.color.max_snr_color));
             textPaint.setColor(ContextCompat.getColor(context, R.color.snrbar_text_color));
 
-            // Handle custom attributes
             if (attrs != null) {
                 TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.SNRBar);
                 try {
@@ -68,7 +74,7 @@ public class SNRBar extends View {
                     a.recycle();
                 }
             } else {
-                // Set default colors if no attributes are provided
+                // Default colors if no attributes provided
                 startColor = ContextCompat.getColor(context, R.color.snrbar_start_color);
                 endColor = ContextCompat.getColor(context, R.color.snrbar_end_color);
             }
@@ -83,20 +89,21 @@ public class SNRBar extends View {
         setWillNotDraw(false);
     }
 
+    /**
+     * Sets the SNR value and triggers a redraw.
+     * @param snrValue The new SNR value calculated by the back-end.
+     */
     public void setSNRValue(final double snrValue) {
         // Ensure updates happen on the main thread
         post(() -> {
             currentSNR = (float) snrValue;
 
-            // Update max SNR if the current value is greater
+            // Update max SNR if current is greater
             if (currentSNR > maxSNR) {
                 maxSNR = currentSNR;
             }
 
-            // Update SNR category
             snrCategory = getSNRRating(currentSNR);
-
-            // Trigger redraw
             invalidate();
         });
     }
@@ -105,7 +112,7 @@ public class SNRBar extends View {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
-        // Initialize gradient if not already done
+        // Initialize gradient once we have dimensions
         if (gradient == null) {
             gradient = new LinearGradient(0, 0, 0, getHeight(),
                     startColor,
@@ -114,22 +121,26 @@ public class SNRBar extends View {
             snrPaint.setShader(gradient);
         }
 
-        // Normalize SNR value to a 0-1 range for the bar height
-        float normalizedSNR = (currentSNR + 20) / 100f;  // Adjust based on expected SNR range
+        // Normalize SNR to [0,1] range. The logic "(SNR + 20) / 100" was chosen based on expected SNR range.
+        // Adjust SNR_OFFSET and SNR_DIVISOR to match your environment or tests.
+        float normalizedSNR = (currentSNR + SNR_OFFSET) / SNR_DIVISOR;
         normalizedSNR = Math.max(0, Math.min(normalizedSNR, 1));  // Clamp between 0 and 1
 
         float barHeight = getHeight() * normalizedSNR;
         RectF rect = new RectF(0, getHeight() - barHeight, getWidth(), getHeight());
         canvas.drawRect(rect, snrPaint);
 
-        // Draw the maximum SNR indicator
-        float normalizedMaxSNR = (maxSNR + 20) / 100f;
+        // Draw the maximum SNR indicator line
+        float normalizedMaxSNR = (maxSNR + SNR_OFFSET) / SNR_DIVISOR;
         normalizedMaxSNR = Math.max(0, Math.min(normalizedMaxSNR, 1));
         float maxSNRHeight = getHeight() * normalizedMaxSNR;
         canvas.drawLine(0, getHeight() - maxSNRHeight, getWidth(), getHeight() - maxSNRHeight, maxSNRPaint);
 
-        // Draw the SNR category text
+        // Draw the SNR category text at the center of the view
         canvas.drawText(snrCategory, getWidth() / 2f, getHeight() / 2f, textPaint);
+
+        // Optional: If debugging is needed
+        // Log.d("SNRBar", "currentSNR: " + currentSNR + ", maxSNR: " + maxSNR + ", category: " + snrCategory);
     }
 
     @Override
@@ -142,7 +153,11 @@ public class SNRBar extends View {
         snrPaint.setShader(gradient);
     }
 
-    // Provide feedback on the SNR quality
+    /**
+     * Provides qualitative feedback based on SNR values.
+     * @param snrValue The current SNR.
+     * @return A string representing the quality category.
+     */
     private String getSNRRating(float snrValue) {
         if (snrValue < 0) {
             return "Very Poor";

@@ -39,6 +39,16 @@
             android:padding="16dp">
 
             <!-- Your Buttons Here -->
+            <!-- Example:
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/button_record_baseline"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/record_baseline_noise"
+                android:contentDescription="@string/record_baseline_noise_button"
+                android:layout_marginBottom="8dp" />
+            -->
 
         </LinearLayout>
     </ScrollView>

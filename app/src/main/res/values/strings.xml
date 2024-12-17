@@ -19,8 +19,11 @@
     <string name="snr_bar_description">SNR bar showing signal-to-noise ratio</string>
     <string name="audio_chart_description">Real-time audio chart</string>
     <!-- Menu Items -->
+    <string name="scroll_view_description">Scrollable content</string>
     <string name="app_name">VocalHarmony</string>
     <string name="title_home">Home</string>
     <string name="title_dashboard">Dashboard</string>
     <string name="title_notifications">Notifications</string>
     <string name="action_settings">Settings</string></resources>
+
+
