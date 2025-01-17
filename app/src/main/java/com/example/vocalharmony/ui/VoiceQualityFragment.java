@@ -31,20 +31,21 @@ public class VoiceQualityFragment extends Fragment {
     private static final String TAG = "VoiceQualityFragment";
     private static final int REQUEST_RECORD_AUDIO_PERMISSION = 200;
 
+    // Permissions
     private boolean permissionToRecordAccepted = false;
 
+    // Audio processing
     private AudioProcessor audioProcessor;
-    private LineChart audioChart;
-    private LineDataSet dataSet;
-    private LineData lineData;
-    private SNRBar snrBar;
 
+    // UI references
+    private SNRBar snrBar;
+    private LineChart audioChart;
     private Button recordBaselineButton;
     private Button startRecordButton;
     private Button stopRecordButton;
     private Button viewSavedFilesButton;
 
-    // Time tracking for graph updates
+    // Graph update timing
     private long lastGraphUpdateTime = 0;
     private static final int GRAPH_UPDATE_INTERVAL = 100; // milliseconds
 
@@ -54,13 +55,13 @@ public class VoiceQualityFragment extends Fragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        // Inflate the Voice Quality Fragment layout
+        // Inflate the updated fragment layout
         View rootView = inflater.inflate(R.layout.fragment_voice_quality, container, false);
 
-        // Initialize UI components and set up event listeners
+        // Initialize UI components (SNR bar, chart, and buttons)
         initializeUIComponents(rootView);
 
-        // Check and request audio recording permission if not granted
+        // Check/Request audio recording permission
         if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.RECORD_AUDIO)
                 != PackageManager.PERMISSION_GRANTED) {
             requestRecordAudioPermission();
@@ -72,34 +73,75 @@ public class VoiceQualityFragment extends Fragment {
         return rootView;
     }
 
+    /**
+     * Locate and set up UI elements (SNR bar, chart, buttons) from the inflated layout.
+     */
     private void initializeUIComponents(View rootView) {
-        // Initialize buttons and SNRBar
-        recordBaselineButton = rootView.findViewById(R.id.button_record_baseline);
-        startRecordButton = rootView.findViewById(R.id.button_start_record);
-        stopRecordButton = rootView.findViewById(R.id.button_stop_record);
-        viewSavedFilesButton = rootView.findViewById(R.id.button_view_saved_files);
+        // SNR Bar at the top
         snrBar = rootView.findViewById(R.id.snr_bar);
 
-        // Initialize the line chart used for audio visualization
-        initializeChart(rootView);
+        // Audio Chart in the middle
+        audioChart = rootView.findViewById(R.id.audio_chart);
+        initializeChart();
 
-        // Set up button click listeners
+        // Button references in the pinned LinearLayout at the bottom
+        recordBaselineButton  = rootView.findViewById(R.id.button_record_baseline);
+        startRecordButton     = rootView.findViewById(R.id.button_start_record);
+        stopRecordButton      = rootView.findViewById(R.id.button_stop_record);
+        viewSavedFilesButton  = rootView.findViewById(R.id.button_view_saved_files);
+
+        // Initially hide the stop recording button
+        stopRecordButton.setVisibility(View.GONE);
+
+        // Assign click listeners
         recordBaselineButton.setOnClickListener(view -> recordBaseline());
         startRecordButton.setOnClickListener(view -> startRecording());
         stopRecordButton.setOnClickListener(view -> stopRecording());
         viewSavedFilesButton.setOnClickListener(view -> viewSavedBaselineFiles());
-
-        // Initially, stop recording button is not visible
-        stopRecordButton.setVisibility(View.GONE);
     }
 
+    /**
+     * Create and configure the chart for visualizing audio data.
+     */
+    private void initializeChart() {
+        LineDataSet dataSet = new LineDataSet(new ArrayList<>(), "Audio Levels");
+        dataSet.setDrawCircles(false);
+        dataSet.setColor(Color.BLUE);
+        dataSet.setLineWidth(1f);
+        dataSet.setMode(LineDataSet.Mode.LINEAR);
+
+        LineData lineData = new LineData(dataSet);
+        audioChart.setData(lineData);
+
+        // Disable extra UI features for a cleaner look
+        audioChart.getDescription().setEnabled(false);
+        audioChart.getLegend().setEnabled(false);
+
+        // Disable user touch gestures on the chart
+        audioChart.setTouchEnabled(false);
+
+        // Remove default chart offsets, so the line extends to chart edges
+        audioChart.setViewPortOffsets(0, 0, 0, 0);
+    }
+
+    /**
+     * Request permission to record audio if not already granted.
+     */
+    private void requestRecordAudioPermission() {
+        Log.d(TAG, "Requesting audio recording permission...");
+        requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, REQUEST_RECORD_AUDIO_PERMISSION);
+    }
+
+    /**
+     * Initialize the audio processor used to handle baseline/noise calculations & SNR.
+     */
     private void initializeAudioProcessor() {
-        Log.d(TAG, "Initializing AudioProcessor.");
+        Log.d(TAG, "Initializing AudioProcessor...");
         audioProcessor = new AudioProcessor(requireContext(), new AudioProcessor.RecordingCallback() {
             @Override
             public void onAudioDataReceived(short[] audioBuffer) {
-                // Update the graph with incoming audio data
-                updateGraph(audioBuffer);
+                // Update the chart with incoming audio data
+                updateChart(audioBuffer);
             }
 
             @Override
@@ -107,7 +149,7 @@ public class VoiceQualityFragment extends Fragment {
                 Log.d(TAG, "Baseline recording completed.");
                 requireActivity().runOnUiThread(() -> {
                     Toast.makeText(requireContext(), "Baseline recorded successfully.", Toast.LENGTH_SHORT).show();
-                    // After baseline is recorded, enable start recording button
+                    // Enable start recording after baseline is done
                     startRecordButton.setEnabled(true);
                 });
             }
@@ -120,40 +162,34 @@ public class VoiceQualityFragment extends Fragment {
         });
     }
 
-    private void initializeChart(View rootView) {
-        audioChart = rootView.findViewById(R.id.audio_chart);
-        dataSet = new LineDataSet(new ArrayList<>(), "Audio Levels");
-        dataSet.setDrawCircles(false);
-        dataSet.setColor(Color.BLUE);
-        dataSet.setLineWidth(1f);
-        dataSet.setMode(LineDataSet.Mode.LINEAR);
-
-        lineData = new LineData(dataSet);
-        audioChart.setData(lineData);
-
-        audioChart.getDescription().setEnabled(false);
-        audioChart.getLegend().setEnabled(false);
-        audioChart.setTouchEnabled(false);
-        audioChart.setViewPortOffsets(0, 0, 0, 0);
-    }
-
-    private void updateGraph(short[] buffer) {
+    /**
+     * Update the chart with live audio data. Throttled to GRAPH_UPDATE_INTERVAL ms.
+     */
+    private void updateChart(short[] buffer) {
         long currentTime = System.currentTimeMillis();
-        // Throttle graph updates to every GRAPH_UPDATE_INTERVAL ms
+        // Throttle frequent updates
         if (currentTime - lastGraphUpdateTime < GRAPH_UPDATE_INTERVAL) {
             return;
         }
         lastGraphUpdateTime = currentTime;
 
+        // Because MPAndroidChart updates must happen on the main thread
         requireActivity().runOnUiThread(() -> {
+            if (audioChart.getData() == null) return; // Safety check
+            LineData lineData = audioChart.getData();
+            if (lineData.getDataSetCount() == 0) return; // Safety check for dataSet existence
+
+            // Retrieve the existing DataSet
+            LineDataSet dataSet = (LineDataSet) lineData.getDataSetByIndex(0);
             int currentX = dataSet.getEntryCount();
 
+            // Convert short samples to normalized float
             for (short amplitude : buffer) {
                 float normalizedAmplitude = amplitude / 32768f;
                 dataSet.addEntry(new Entry(currentX++, normalizedAmplitude));
             }
 
-            // Limit data points to avoid performance degradation
+            // Limit data points to keep performance stable
             int maxVisiblePoints = 500;
             while (dataSet.getEntryCount() > maxVisiblePoints) {
                 dataSet.removeFirst();
@@ -166,62 +202,70 @@ public class VoiceQualityFragment extends Fragment {
         });
     }
 
+    /**
+     * Refresh the SNR bar when a new SNR value is calculated.
+     */
     private void updateSNRBar(double snrValue) {
-        // Update the SNR bar on the UI thread
         requireActivity().runOnUiThread(() -> snrBar.setSNRValue(snrValue));
     }
 
+    /**
+     * Begins a baseline noise recording session.
+     */
     private void recordBaseline() {
         if (!permissionToRecordAccepted) {
             requestRecordAudioPermission();
             return;
         }
-
-        if (audioProcessor != null) {
-            isRecordingBaseline = true;
-            audioProcessor.recordBaseline();
-
-            // Update UI to reflect baseline recording in progress
-            requireActivity().runOnUiThread(() -> {
-                recordBaselineButton.setEnabled(false);
-                startRecordButton.setEnabled(false);
-                stopRecordButton.setVisibility(View.VISIBLE);
-                stopRecordButton.setEnabled(true);
-            });
-            Log.d(TAG, "Baseline recording started.");
-        } else {
-            Toast.makeText(requireContext(), "Audio Processor is not initialized.", Toast.LENGTH_SHORT).show();
-            Log.w(TAG, "Attempted to record baseline but AudioProcessor was null.");
+        if (audioProcessor == null) {
+            Toast.makeText(requireContext(), "Audio Processor not initialized.", Toast.LENGTH_SHORT).show();
+            return;
         }
+
+        isRecordingBaseline = true;
+        audioProcessor.recordBaseline();
+
+        // Update UI
+        requireActivity().runOnUiThread(() -> {
+            recordBaselineButton.setEnabled(false);
+            startRecordButton.setEnabled(false);
+            stopRecordButton.setVisibility(View.VISIBLE);
+            stopRecordButton.setEnabled(true);
+        });
+        Log.d(TAG, "Baseline recording started...");
     }
 
+    /**
+     * Starts actual audio recording (requires a prior baseline).
+     */
     private void startRecording() {
         if (!permissionToRecordAccepted) {
             requestRecordAudioPermission();
             return;
         }
-
-        if (audioProcessor != null) {
-            if (!audioProcessor.isBaselineRecorded()) {
-                Toast.makeText(requireContext(), "Please record baseline noise first.", Toast.LENGTH_SHORT).show();
-                return;
-            }
-
-            audioProcessor.startRecording();
-            // Update UI to indicate active recording
-            requireActivity().runOnUiThread(() -> {
-                startRecordButton.setEnabled(false);
-                recordBaselineButton.setEnabled(false);
-                stopRecordButton.setVisibility(View.VISIBLE);
-                stopRecordButton.setEnabled(true);
-            });
-            Log.d(TAG, "Start recording initiated.");
-        } else {
-            Toast.makeText(requireContext(), "Audio Processor is not initialized.", Toast.LENGTH_SHORT).show();
-            Log.w(TAG, "Attempted to start recording but AudioProcessor was null.");
+        if (audioProcessor == null) {
+            Toast.makeText(requireContext(), "Audio Processor not initialized.", Toast.LENGTH_SHORT).show();
+            return;
         }
+        if (!audioProcessor.isBaselineRecorded()) {
+            Toast.makeText(requireContext(), "Please record baseline noise first.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        audioProcessor.startRecording();
+        // Update UI
+        requireActivity().runOnUiThread(() -> {
+            recordBaselineButton.setEnabled(false);
+            startRecordButton.setEnabled(false);
+            stopRecordButton.setVisibility(View.VISIBLE);
+            stopRecordButton.setEnabled(true);
+        });
+        Log.d(TAG, "Audio recording started...");
     }
 
+    /**
+     * Stops either baseline or normal recording.
+     */
     private void stopRecording() {
         if (audioProcessor != null) {
             if (isRecordingBaseline) {
@@ -232,7 +276,6 @@ public class VoiceQualityFragment extends Fragment {
                 audioProcessor.stopRecording();
                 Log.d(TAG, "Audio recording stopped.");
             }
-
             // Restore button states
             requireActivity().runOnUiThread(() -> {
                 stopRecordButton.setVisibility(View.GONE);
@@ -241,28 +284,28 @@ public class VoiceQualityFragment extends Fragment {
                 startRecordButton.setEnabled(true);
             });
         } else {
-            Log.w(TAG, "Attempted to stop recording but AudioProcessor was null.");
+            Log.w(TAG, "Attempted to stop recording, but AudioProcessor is null.");
         }
     }
 
+    /**
+     * View saved baseline files in an alert dialog.
+     */
     private void viewSavedBaselineFiles() {
         File directory = requireContext().getExternalFilesDir(null);
-
         if (directory != null && directory.exists()) {
             File[] files = directory.listFiles();
-
             if (files != null && files.length > 0) {
                 String[] fileNames = new String[files.length];
                 for (int i = 0; i < files.length; i++) {
                     fileNames[i] = files[i].getName();
                 }
-
                 new androidx.appcompat.app.AlertDialog.Builder(requireContext())
                         .setTitle("Saved Baseline Files")
                         .setItems(fileNames, (dialog, which) -> {
                             String selectedFile = fileNames[which];
                             Toast.makeText(requireContext(), "Selected file: " + selectedFile, Toast.LENGTH_SHORT).show();
-                            // Optionally, implement logic to process or analyze the selected file.
+                            // Optional: logic to process the selected file
                         })
                         .show();
             } else {
@@ -273,23 +316,22 @@ public class VoiceQualityFragment extends Fragment {
         }
     }
 
-    private void requestRecordAudioPermission() {
-        Log.d(TAG, "Requesting audio recording permission.");
-        requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, REQUEST_RECORD_AUDIO_PERMISSION);
-    }
-
+    /**
+     * Handle the result of requesting RECORD_AUDIO permission.
+     */
     @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+    public void onRequestPermissionsResult(int requestCode,
+                                           @NonNull String[] permissions,
                                            @NonNull int[] grantResults) {
         if (requestCode == REQUEST_RECORD_AUDIO_PERMISSION) {
             permissionToRecordAccepted = grantResults.length > 0
                     && grantResults[0] == PackageManager.PERMISSION_GRANTED;
             if (permissionToRecordAccepted) {
                 initializeAudioProcessor();
-                Toast.makeText(requireContext(), "Permission granted, you can now record audio.", Toast.LENGTH_SHORT).show();
-                Log.d(TAG, "Audio recording permission granted.");
+                Toast.makeText(requireContext(), "Permission granted, you can record audio now.", Toast.LENGTH_SHORT).show();
+                Log.d(TAG, "Audio recording permission granted by user.");
             } else {
-                Toast.makeText(requireContext(), "Recording permission is required", Toast.LENGTH_LONG).show();
+                Toast.makeText(requireContext(), "Recording permission is required.", Toast.LENGTH_LONG).show();
                 Log.w(TAG, "Audio recording permission denied by user.");
             }
         }

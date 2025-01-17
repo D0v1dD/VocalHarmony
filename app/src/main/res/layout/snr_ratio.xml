@@ -1,34 +1,43 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- If needed, replace `tools:context` with your actual Fragment/Activity class,
+     or remove it if not using Tools preview. -->
+
 <androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".YourActivityOrFragment">
+    tools:context=".ui.VoiceQualityFragment">
 
-    <!-- Toolbar -->
+    <!-- Toolbar pinned at the top -->
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/toolbar"
         android:layout_width="0dp"
         android:layout_height="?attr/actionBarSize"
-        android:theme="@style/ThemeOverlay.MaterialComponents.Dark.ActionBar"
-        android:contentDescription="@string/app_toolbar_description"
+
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent"
 
-    <!-- Scrollable Button Container -->
+        android:contentDescription="@string/app_toolbar_description"
+        android:theme="@style/ThemeOverlay.MaterialComponents.Dark.ActionBar"
+        tools:ignore="MissingConstraints" />
+
+    <!-- Scrollable container for buttons, pinned below the Toolbar & above the SNR Bar -->
     <ScrollView
+        android:id="@+id/button_scroll"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_height="0dp"
+        android:fillViewport="true"
         android:contentDescription="@string/scroll_view_description"
-        app:layout_constraintTop_toBottomOf="@id/toolbar"
-        app:layout_constraintBottom_toTopOf="@id/snr_bar"
+
+        app:layout_constraintTop_toBottomOf="@+id/toolbar"
+        app:layout_constraintBottom_toTopOf="@+id/snr_bar"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="16dp"
-        tools:ignore="SpeakableTextPresentCheck">
+        android:layout_marginTop="8dp">
 
         <LinearLayout
             android:id="@+id/button_container"
@@ -38,39 +47,48 @@
             android:gravity="center_horizontal"
             android:padding="16dp">
 
-            <!-- Your Buttons Here -->
-            <!-- Example:
+            <!-- Example Buttons -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/button_record_baseline"
                 style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="@string/record_baseline_noise"
-                android:contentDescription="@string/record_baseline_noise_button"
                 android:layout_marginBottom="8dp" />
-            -->
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/button_start_record"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/start_recording"
+                android:layout_marginBottom="8dp" />
+
+            <!-- Add other buttons as needed... -->
 
         </LinearLayout>
     </ScrollView>
 
-    <!-- SNR Bar -->
+    <!-- SNR Bar pinned below the ScrollView, above the chart -->
     <com.example.vocalharmony.ui.home.SNRBar
         android:id="@+id/snr_bar"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:contentDescription="@string/snr_bar_description"
-        app:layout_constraintTop_toBottomOf="@id/button_container"
+
+        app:layout_constraintTop_toBottomOf="@+id/button_scroll"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="16dp" />
+        android:layout_marginTop="12dp" />
 
-    <!-- Audio Chart -->
+    <!-- Audio Chart pinned to the bottom; occupies 40% height -->
     <com.github.mikephil.charting.charts.LineChart
         android:id="@+id/audio_chart"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:contentDescription="@string/audio_chart_description"
-        app:layout_constraintTop_toBottomOf="@id/snr_bar"
+
+        app:layout_constraintTop_toBottomOf="@+id/snr_bar"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"

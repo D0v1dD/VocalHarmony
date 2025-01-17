@@ -31,19 +31,19 @@ app:startDestination="@+id/navigation_home">
 
 <fragment
     android:id="@+id/navigation_data"
-    android:name="com.example.vocalharmony.ui.data.AccessDataFragment"
+    android:name="com.example.vocalharmony.ui.home.AccessDataFragment"
     android:label="Access Data"
     tools:layout="@layout/fragment_access_data" />
 
 <fragment
     android:id="@+id/navigation_training"
-    android:name="com.example.vocalharmony.ui.home.training.TrainingFragment"
+    android:name="com.example.vocalharmony.ui.home.TrainingFragment"
     android:label="Training"
     tools:layout="@layout/fragment_training" />
 
 <fragment
     android:id="@+id/navigation_record_yourself"
-    android:name="com.example.vocalharmony.ui.record.RecordYourselfFragment"
+    android:name="com.example.vocalharmony.ui.home.RecordYourselfFragment"
     android:label="Record Yourself"
     tools:layout="@layout/fragment_record_yourself" />
     <fragment
