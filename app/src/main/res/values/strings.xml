@@ -9,7 +9,6 @@
 
     <!-- Microphone Testing Strings -->
     <string name="microphone_test_instructions">Press &quot;Start Test&quot; and produce a tone with your electrolarynx.</string>
-
     <string name="testing_in_progress">Testing...</string>
     <string name="advanced_information">Advanced Information:</string>
     <string name="show_advanced_info">Show Advanced Info</string>
@@ -23,11 +22,25 @@
     <string name="snr_info">SNR: -- dB</string>
 
     <!-- Recording Buttons -->
-
     <string name="app_toolbar_description">App Toolbar</string>
+    <string name="start_test">Start Test</string>
+    <string name="stop_test">Stop Test</string>
+    <string name="baseline_recorded_toast">Baseline noise recorded!</string>
 
-    <string name="start_test">Start Test</string>  <string name="stop_test">Stop Test</string>    <string name="baseline_recorded_toast">Baseline noise recorded!</string>
-    <string name="baseline_quality_label">Baseline Quality</string>  <string name="baseline_quality_level">Level</string>        <string name="start_recording">Start SNR Test</string>  <string name="stop_recording">Stop SNR Test</string>    <string name="start_microphone_test">Start Microphone Test</string>
+    <!-- These two originally held the words "Baseline Quality" and "Level" but could cause concatenation warnings
+         in code if you do something like getString(...) + ": " + value.
+         You can still keep them if other parts of your app use them literally. -->
+    <string name="baseline_quality_label">Baseline Quality</string>
+    <string name="baseline_quality_level">Level</string>
+<string name="mic_status_desc">Microphone Status</string>
+
+    <!-- NEW: Format strings to safely insert dynamic data without concatenation -->
+    <string name="baseline_quality_format">Baseline Quality: %1$s</string>
+    <string name="baseline_level_format">Level: %1$d</string>
+
+    <string name="start_recording">Start SNR Test</string>
+    <string name="stop_recording">Stop SNR Test</string>
+    <string name="start_microphone_test">Start Microphone Test</string>
 
     <string name="record_baseline_first">Please record baseline in the Microphone Test section.</string>
     <string name="title_microphone_test">Microphone Test</string>
@@ -46,6 +59,7 @@
     <string name="mic_quality_poor">Microphone quality is poor</string>
     <string name="mic_quality_moderate">Microphone quality is moderate</string>
     <string name="mic_quality_good">Microphone quality is good</string>
+
     <!-- Accessibility Content Descriptions and Instructions -->
     <string name="record_baseline_noise_button">Button to record baseline noise</string>
     <string name="start_recording_button">Button to start recording</string>

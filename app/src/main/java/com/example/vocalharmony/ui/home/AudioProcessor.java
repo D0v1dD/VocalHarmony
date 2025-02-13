@@ -36,7 +36,9 @@ public class AudioProcessor {
     private double baselineNoisePower = 0.0; // Initialize to 0.0
 
     // Constructor (calculate window sizes)
-    public AudioProcessor(Context context, VoiceQualityTestingCallback voiceQualityTestingCallback, MicrophoneTestTestingCallback microphoneTestTestingCallback) {
+    public AudioProcessor(Context context,
+                          VoiceQualityTestingCallback voiceQualityTestingCallback,
+                          MicrophoneTestTestingCallback microphoneTestTestingCallback) {
         this.context = context;
         this.voiceQualityTestingCallback = voiceQualityTestingCallback;
         this.microphoneTestTestingCallback = microphoneTestTestingCallback;
@@ -47,7 +49,8 @@ public class AudioProcessor {
     }
 
     private boolean initializeAudioRecord() {
-        if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO)
+                != PackageManager.PERMISSION_GRANTED) {
             Log.e(TAG, "RECORD_AUDIO permission not granted.");
             return false;
         }
@@ -58,11 +61,11 @@ public class AudioProcessor {
                     SAMPLE_RATE,
                     CHANNEL_CONFIG,
                     AUDIO_FORMAT,
-                    BUFFER_SIZE // Use the calculated buffer size
+                    BUFFER_SIZE
             );
             if (audioRecord.getState() != AudioRecord.STATE_INITIALIZED) {
                 Log.e(TAG, "❌ AudioRecord initialization failed");
-                audioRecord = null; // Set to null to allow retries
+                audioRecord = null;
                 return false;
             }
             return true;
@@ -90,7 +93,7 @@ public class AudioProcessor {
             } catch (Exception e) {
                 Log.e(TAG, "Exception in startBaselineRecording", e);
             } finally {
-                stopRecording(); // Use the common stopRecording method
+                stopRecording();
                 if (microphoneTestTestingCallback != null) {
                     microphoneTestTestingCallback.onMicrophoneActive(false);
                 }
@@ -98,9 +101,8 @@ public class AudioProcessor {
         }).start();
     }
 
-
     private void processBaselineNoise() {
-        short[] buffer = new short[windowSizeSamples]; // Use windowSizeSamples
+        short[] buffer = new short[windowSizeSamples];
         int totalReads = 0;
         double sumNoisePower = 0;
 
@@ -110,7 +112,6 @@ public class AudioProcessor {
         while (isBaselineRecording && System.currentTimeMillis() - startTime < recordingDuration) {
             int shortsRead = audioRecord.read(buffer, 0, windowSizeSamples);
             if (shortsRead > 0) {
-                // Apply Hanning window
                 applyHanningWindow(buffer, shortsRead);
                 sumNoisePower += calculatePower(buffer, shortsRead);
                 totalReads++;
@@ -119,7 +120,7 @@ public class AudioProcessor {
 
         if (totalReads > 0) {
             baselineNoisePower = sumNoisePower / totalReads;
-            // Determine baseline quality (your original logic, but using calculated baselineNoisePower)
+
             String qualityLabel;
             int qualityLevel;
 
@@ -139,6 +140,7 @@ public class AudioProcessor {
                 qualityLabel = "Very Poor";
                 qualityLevel = 5;
             }
+
             if (microphoneTestTestingCallback != null) {
                 new Handler(Looper.getMainLooper()).post(() -> {
                     microphoneTestTestingCallback.onBaselineQuality(qualityLabel, qualityLevel);
@@ -149,7 +151,6 @@ public class AudioProcessor {
             Log.e(TAG, "No windows read during baseline recording");
         }
     }
-
 
     public void testMicrophone() {
         if (!initializeAudioRecord()) {
@@ -169,7 +170,7 @@ public class AudioProcessor {
             } catch (Exception e) {
                 Log.e(TAG, "Exception in testMicrophone", e);
             } finally {
-                stopRecording(); // Use common stopRecording
+                stopRecording();
                 if (voiceQualityTestingCallback != null) {
                     voiceQualityTestingCallback.onMicrophoneActive(false);
                 }
@@ -178,25 +179,22 @@ public class AudioProcessor {
     }
 
     private void processMicrophoneTest() {
-        short[] buffer = new short[windowSizeSamples]; // Use window size for buffer
-        //removed all totalReads, sumAmplitude, and sumFrequency
+        short[] buffer = new short[windowSizeSamples];
 
         while (isTesting) {
             int shortsRead = audioRecord.read(buffer, 0, windowSizeSamples);
             if (shortsRead > 0) {
-                // Apply Hanning window
                 applyHanningWindow(buffer, shortsRead);
 
                 double signalPower = calculatePower(buffer, shortsRead);
                 double snr = calculateSNR(signalPower, baselineNoisePower);
                 double frequency = estimateFrequency(buffer, shortsRead);
 
-
                 if (voiceQualityTestingCallback != null) {
-                    //removed onTestingDataRecieved
-                    //remove onTestCompleted
-                    new Handler(Looper.getMainLooper()).post(() -> voiceQualityTestingCallback.onIntermediateSNR(snr)); // Send intermediate SNR
-                    //removed the handler
+                    new Handler(Looper.getMainLooper()).post(() -> {
+                        // Per-window SNR updates
+                        voiceQualityTestingCallback.onIntermediateSNR(snr);
+                    });
                 }
             }
         }
@@ -216,17 +214,17 @@ public class AudioProcessor {
         }
         return sumOfSquares / validSamples;
     }
-    // Improved (but still simple) frequency estimation
+
     private double estimateFrequency(short[] buffer, int validSamples) {
         if (validSamples == 0) {
             return 0;
         }
 
-        int numSamples = Math.min(validSamples, buffer.length); // Prevent out-of-bounds access
+        int numSamples = Math.min(validSamples, buffer.length);
         int peakIndex = 0;
         short maxValue = 0;
 
-        // Find the index of the peak value (highest amplitude)
+        // Find peak amplitude
         for (int i = 0; i < numSamples; i++) {
             if (Math.abs(buffer[i]) > maxValue) {
                 maxValue = (short) Math.abs(buffer[i]);
@@ -234,47 +232,38 @@ public class AudioProcessor {
             }
         }
 
-        // Find the next zero crossing *after* the peak
+        // Find zero crossing after the peak
         int lastZeroCrossingIndex = -1;
-
-        // Start searching for zero crossings after the peak
         for (int i = peakIndex; i < numSamples - 1; i++) {
             if ((buffer[i] > 0 && buffer[i + 1] <= 0) || (buffer[i] < 0 && buffer[i + 1] >= 0)) {
-                // Zero crossing found
                 if (lastZeroCrossingIndex != -1) {
-                    //calculate the distance between zero crossing
                     int samplesBetweenZeroCrossings = i - lastZeroCrossingIndex;
-                    //check for div by zero
-                    if (samplesBetweenZeroCrossings > 0){
-                        //calculate the frequency and return it
+                    if (samplesBetweenZeroCrossings > 0) {
                         return SAMPLE_RATE / (double) (2 * samplesBetweenZeroCrossings);
                     }
                 }
                 lastZeroCrossingIndex = i;
             }
         }
-
         return 0; // No frequency detected
     }
 
     private double calculateSNR(double signalPower, double noisePower) {
         if (noisePower == 0) {
-            return 100.0; // A large value, indicating very good SNR
+            return 100.0;
         }
-        if (signalPower == 0){
+        if (signalPower == 0) {
             return 0;
         }
         double snr = 10 * Math.log10(signalPower / noisePower);
-        // Clamp the SNR to be between 0 and 100 dB
         return Math.max(0.0, Math.min(100.0, snr));
     }
-
 
     // Unified stopRecording method
     private void stopRecording() {
         if (audioRecord != null) {
             try {
-                if (isBaselineRecording || isTesting) { //check if it is recording
+                if (isBaselineRecording || isTesting) {
                     audioRecord.stop();
                 }
                 isTesting = false;
@@ -286,19 +275,26 @@ public class AudioProcessor {
         }
     }
 
+    /**
+     * Added for fragments that explicitly call `stopTesting()`.
+     * It sets `isTesting` to false, then calls the internal `stopRecording()`.
+     */
+    public void stopTesting() {
+        isTesting = false;
+        stopRecording();
+    }
+
     public void release() {
-        stopRecording(); // Ensure recording is stopped before releasing
+        stopRecording();
         if (audioRecord != null) {
             audioRecord.release();
             audioRecord = null;
         }
     }
 
-    // Callback interfaces (keep your existing ones, but adjust method names)
+    // Callback interfaces
     public interface VoiceQualityTestingCallback {
-        // Remove onTestingDataReceived
-        // Remove onTestCompleted
-        void onIntermediateSNR(double snr); // Use this for per-window SNR updates
+        void onIntermediateSNR(double snr);
         void onMicrophoneActive(boolean isActive);
     }
 

@@ -11,7 +11,7 @@
         android:layout_width="32dp"
         android:layout_height="32dp"
         android:layout_margin="8dp"
-        android:contentDescription="Microphone Status"
+        android:contentDescription="@string/mic_status_desc"
         android:src="@drawable/ic_mic_off"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />

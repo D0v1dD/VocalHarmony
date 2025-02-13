@@ -9,7 +9,7 @@ android {
 
 
     defaultConfig {
-        applicationId = "com.example.vocalharmony"
+        applicationId = "com.example.vocalharmony.testversion"
         minSdk = 24
         targetSdk = 34
         versionCode = 1
