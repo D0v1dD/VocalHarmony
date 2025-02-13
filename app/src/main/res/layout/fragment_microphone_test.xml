@@ -10,31 +10,36 @@
         android:id="@+id/test_feedback"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"
+        android:layout_marginBottom="16dp"
         android:text="Feedback will appear here"
+        android:visibility="gone"
         app:layout_constraintBottom_toTopOf="@+id/baseline_quality_label"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_chainStyle="packed" />
 
+    <!-- 🔹 Baseline Quality Label -->
     <TextView
         android:id="@+id/baseline_quality_label"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"
-        android:text="Baseline Quality: "
+        android:layout_marginBottom="4dp"
+        android:text="@string/baseline_quality_label"
+        android:textStyle="bold"
         app:layout_constraintBottom_toTopOf="@+id/baseline_quality_level"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/test_feedback" />
 
+    <!-- 🔹 Baseline Quality Level (Fix for Missing ID) -->
     <TextView
         android:id="@+id/baseline_quality_level"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
-        android:text="Level: "
+        android:text="N/A"
+        android:textSize="16sp"
+        android:textColor="@android:color/black"
         app:layout_constraintBottom_toTopOf="@+id/button_record_baseline"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -61,7 +66,6 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/button_record_baseline" />
-
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/button_stop_test"

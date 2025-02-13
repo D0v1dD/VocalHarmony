@@ -18,11 +18,11 @@ import com.example.vocalharmony.R;
 public class SNRBar extends View {
 
     private static final String TAG = "SNRBar";
-    private static final float SNR_MIN_DB = -20f;
-    private static final float SNR_MAX_DB = 40f;
+    private static final float SNR_MIN_DB = 0f;  // Set minimum SNR to 0
+    private static final float SNR_MAX_DB = 100f; // Set max SNR to 100
 
     private float currentSNR = SNR_MIN_DB;
-    private float maxSNR = SNR_MIN_DB;
+    private float maxSNR = SNR_MIN_DB;  // Track max SNR
     private Paint snrPaint;
     private Paint maxSNRPaint;
     private Paint textPaint;
@@ -125,11 +125,21 @@ public class SNRBar extends View {
 
     private String getSNRRating(float snrValue) {
         if (snrValue <= SNR_MIN_DB) return "No Signal";
-        if (snrValue < 0) return "Very Poor";
-        if (snrValue < 5) return "Poor";
-        if (snrValue < 10) return "Fair";
-        if (snrValue < 15) return "Good";
-        if (snrValue < 20) return "Very Good";
+        if (snrValue < 20) return "Very Poor";
+        if (snrValue < 40) return "Poor";
+        if (snrValue < 60) return "Fair";
+        if (snrValue < 75) return "Good";
+        if (snrValue < 90) return "Very Good";
         return "Excellent";
+    }
+
+    // Resets SNR bar and clears max SNR tracking
+    public void reset() {
+        currentSNR = SNR_MIN_DB;
+        maxSNR = SNR_MIN_DB;
+        if (animator != null) {
+            animator.cancel();
+        }
+        invalidate();
     }
 }

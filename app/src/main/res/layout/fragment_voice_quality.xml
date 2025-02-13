@@ -42,16 +42,26 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
-            android:text="@string/record_baseline" /><com.google.android.material.button.MaterialButton
-        android:id="@+id/button_start_snr"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"
-        android:text="@string/start_recording" /><com.google.android.material.button.MaterialButton
-        android:id="@+id/button_stop_record"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:visibility="gone"
-        android:text="@string/stop_recording" /></LinearLayout>
+            android:text="@string/record_baseline" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/button_start_snr"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="@string/start_recording" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/button_stop_record"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            android:text="@string/stop_recording" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/button_reset"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/reset_button" /> </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

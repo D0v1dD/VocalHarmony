@@ -30,6 +30,7 @@ public class VoiceQualityFragment extends Fragment implements AudioProcessor.Voi
     private Button startSNRButton;
     private Button stopRecordButton;
     private Button recordBaselineButton;
+    private Button resetButton;
     private ImageView micStatusIndicator;
 
     private boolean isRecording = false;
@@ -67,6 +68,7 @@ public class VoiceQualityFragment extends Fragment implements AudioProcessor.Voi
         startSNRButton = rootView.findViewById(R.id.button_start_snr);
         stopRecordButton = rootView.findViewById(R.id.button_stop_record);
         recordBaselineButton = rootView.findViewById(R.id.button_record_baseline);
+        resetButton = rootView.findViewById(R.id.button_reset);
         micStatusIndicator = rootView.findViewById(R.id.mic_status_indicator);
 
         stopRecordButton.setVisibility(View.GONE);
@@ -74,6 +76,7 @@ public class VoiceQualityFragment extends Fragment implements AudioProcessor.Voi
         startSNRButton.setOnClickListener(v -> startSNRTest());
         stopRecordButton.setOnClickListener(v -> stopSNRTest());
         recordBaselineButton.setOnClickListener(v -> recordBaseline());
+        resetButton.setOnClickListener(v -> resetTest());
     }
 
     private void checkMicrophonePermission() {
@@ -100,6 +103,7 @@ public class VoiceQualityFragment extends Fragment implements AudioProcessor.Voi
     private void disableRecordingButtons() {
         startSNRButton.setEnabled(false);
         recordBaselineButton.setEnabled(false);
+        resetButton.setEnabled(false);
     }
 
     private void initializeAudioProcessor() {
@@ -110,8 +114,7 @@ public class VoiceQualityFragment extends Fragment implements AudioProcessor.Voi
             } catch (Exception e) {
                 Log.e(TAG, "❌ Error initializing AudioProcessor: " + e.getMessage());
                 Toast.makeText(requireContext(), R.string.audio_processor_error, Toast.LENGTH_SHORT).show();
-                startSNRButton.setEnabled(false);
-                recordBaselineButton.setEnabled(false);
+                disableRecordingButtons();
             }
         } else {
             Log.d(TAG, "✅ AudioProcessor already initialized.");
@@ -119,42 +122,78 @@ public class VoiceQualityFragment extends Fragment implements AudioProcessor.Voi
     }
 
     private void recordBaseline() {
-        Toast.makeText(requireContext(), "Please record baseline in the Microphone Test section.", Toast.LENGTH_LONG).show();
+        if (audioProcessor == null) {
+            Log.e(TAG, "❌ audioProcessor is null, cannot record baseline.");
+            return;
+        }
+
+        Log.d(TAG, "🎤 Starting baseline recording...");
+        recordBaselineButton.setEnabled(false);
+        audioProcessor.startBaselineRecording();
     }
 
     private void startSNRTest() {
         if (audioProcessor == null) {
-            Log.e(TAG, "audioProcessor is null");
+            Log.e(TAG, "❌ audioProcessor is null, cannot start test.");
             return;
         }
+        if (audioProcessor.getBaselineNoisePower() == 0.0) {
+            Toast.makeText(requireContext(), "⚠️ Please record a baseline before starting the test.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Log.d(TAG, "▶️ Starting SNR Test...");
+        snrBar.reset();
         isRecording = true;
         audioProcessor.testMicrophone();
+
         startSNRButton.setEnabled(false);
         stopRecordButton.setVisibility(View.VISIBLE);
+        resetButton.setEnabled(false);
     }
 
     private void stopSNRTest() {
         if (!isRecording || audioProcessor == null) {
             return;
         }
+
+        Log.d(TAG, "⏹️ Stopping SNR Test...");
         isRecording = false;
         audioProcessor.stopTesting();
         stopRecordButton.setVisibility(View.GONE);
         startSNRButton.setEnabled(true);
+        resetButton.setEnabled(true);
+    }
+
+    private void resetTest() {
+        Log.d(TAG, "🔄 Resetting test...");
+        if (audioProcessor != null) {
+            audioProcessor.stopTesting();
+            audioProcessor.clearBaseline();
+        }
+        snrBar.reset();
+
+        startSNRButton.setEnabled(true);
+        recordBaselineButton.setEnabled(true);
+        resetButton.setEnabled(true);
     }
 
     @Override
     public void onIntermediateSNR(double snr) {
-        if (snrBar != null) {
-            snrBar.setSNRValue((float) snr);
-        }
+        requireActivity().runOnUiThread(() -> {
+            if (snrBar != null) {
+                snrBar.setSNRValue((float) snr);
+            }
+        });
     }
 
     @Override
     public void onMicrophoneActive(boolean isActive) {
         requireActivity().runOnUiThread(() -> {
-            startSNRButton.setEnabled(!isActive);
+            boolean hasBaseline = audioProcessor.getBaselineNoisePower() != 0.0;
+            startSNRButton.setEnabled(!isActive && hasBaseline);
             recordBaselineButton.setEnabled(!isActive);
+            resetButton.setEnabled(!isActive);
         });
     }
 }
