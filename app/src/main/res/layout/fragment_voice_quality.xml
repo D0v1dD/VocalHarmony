@@ -3,74 +3,55 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:padding="16dp">
 
-    <!-- SNR Bar near the top, occupying 40% of the parent's height -->
+    <ImageView
+        android:id="@+id/mic_status_indicator"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:layout_margin="8dp"
+        android:contentDescription="Microphone Status"
+        android:src="@drawable/ic_mic_off"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
     <com.example.vocalharmony.ui.home.SNRBar
         android:id="@+id/snr_bar"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:layout_margin="16dp"
-        app:layout_constraintTop_toTopOf="parent"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:layout_marginTop="16dp"
+        app:layout_constraintTop_toBottomOf="@id/mic_status_indicator"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toTopOf="@id/buttons_layout"
-        app:layout_constraintHeight_percent="0.4" />
+        app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- LinearLayout at the bottom to hold all baseline and recording buttons -->
     <LinearLayout
         android:id="@+id/buttons_layout"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_margin="16dp"
         android:gravity="center"
-        android:orientation="horizontal"
+        android:orientation="vertical"
         android:padding="8dp"
         app:layout_constraintTop_toBottomOf="@id/snr_bar"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintBottom_toBottomOf="parent">
 
-        <!-- Environment baseline recording button -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/button_record_baseline"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_margin="4dp"
-            android:text="@string/record_baseline_noise" />
-
-        <!-- Device hum baseline recording button -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/button_record_device_baseline"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_margin="4dp"
-            android:text="Record Device Baseline" />
-
-        <!-- Start recording button -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/button_start_record"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_margin="4dp"
-            android:text="@string/start_recording" />
-
-        <!-- Stop recording button -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/button_stop_record"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_margin="4dp"
-            android:text="@string/stop_recording" />
-
-        <!-- View saved files button -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/button_view_saved_files"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_margin="4dp"
-            android:text="@string/view_saved_files" />
-
-    </LinearLayout>
+            android:layout_marginBottom="8dp"
+            android:text="@string/record_baseline" /><com.google.android.material.button.MaterialButton
+        android:id="@+id/button_start_snr"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:text="@string/start_recording" /><com.google.android.material.button.MaterialButton
+        android:id="@+id/button_stop_record"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        android:text="@string/stop_recording" /></LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

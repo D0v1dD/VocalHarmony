@@ -2,42 +2,29 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- Required Permissions -->
 
-    <!-- Permissions for audio recording -->
+    <!-- Permission for recording audio -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
-
-
-    <!-- Permissions for accessing external storage (required for Android versions below 29) -->
-    <uses-permission
-        android:name="android.permission.READ_EXTERNAL_STORAGE"
-        android:maxSdkVersion="28" />
-    <uses-permission
-        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
-        android:maxSdkVersion="28" />
-
-
-    <!-- Media permissions for Android 33+ (READ_MEDIA_AUDIO is needed for accessing audio files) -->
-    <uses-permission
-        android:name="android.permission.READ_MEDIA_IMAGES"
-        android:maxSdkVersion="32" />
-    <uses-permission
-        android:name="android.permission.READ_MEDIA_VIDEO"
-        android:maxSdkVersion="32" />
-    <uses-permission
-        android:name="android.permission.READ_MEDIA_AUDIO" />
-
 
     <!-- Modify audio settings -->
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 
+    <!-- Foreground Service (For Audio Processing Stability) -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
 
-    <!-- Add microphone hardware feature requirement -->
+    <!-- For accessing and saving files (Required for Android versions below 29) -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
+
+    <!-- Media permissions for Android 33+ (For handling saved audio files) -->
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" android:maxSdkVersion="32" />
+
+    <!-- App Feature Declarations -->
     <uses-feature android:name="android.hardware.microphone" android:required="true" />
-
-
-    <!-- Optional: Declare usage of unprocessed audio if available -->
     <uses-feature android:name="android.hardware.audio.pro" android:required="false" />
-
 
     <application
         android:allowBackup="true"
@@ -50,7 +37,6 @@
         android:theme="@style/Theme.VocalHarmony"
         tools:targetApi="33">
 
-
         <!-- Main Activity Declaration -->
         <activity
             android:name=".MainActivity"
@@ -62,10 +48,13 @@
             </intent-filter>
         </activity>
 
-
-        <!-- Optional: Declare other activities or services if needed -->
-
+        <!-- Foreground Service for Audio Recording -->
+        <service
+            android:name=".services.AudioForegroundService"
+            android:foregroundServiceType="mediaProjection"
+            android:permission="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION"
+            android:exported="false" />
 
     </application>
-</manifest>
 
+</manifest>

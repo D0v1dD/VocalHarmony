@@ -6,452 +6,305 @@ import android.content.pm.PackageManager;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
-import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 
 import androidx.core.content.ContextCompat;
 
-import org.jtransforms.fft.DoubleFFT_1D;
-
-import java.util.Arrays;
-
 public class AudioProcessor {
-    private static final String TAG = "AudioProcessor";
 
-    // Audio settings
+    private static final String TAG = "AudioProcessor";
     private static final int SAMPLE_RATE = 44100;
     private static final int CHANNEL_CONFIG = AudioFormat.CHANNEL_IN_MONO;
     private static final int AUDIO_FORMAT = AudioFormat.ENCODING_PCM_16BIT;
-    private static final int BUFFER_SIZE =
-            AudioRecord.getMinBufferSize(SAMPLE_RATE, CHANNEL_CONFIG, AUDIO_FORMAT);
+    private static final int BUFFER_SIZE = AudioRecord.getMinBufferSize(SAMPLE_RATE, CHANNEL_CONFIG, AUDIO_FORMAT);
 
-    /**
-     * Example bandpass filter for ~60–300 Hz @ 44.1 kHz.
-     * Replace these with your actual coefficients if available.
-     */
-    private static final double[] BPF_B = { 0.002608303, 0.0, -0.005216606, 0.0, 0.002608303 };
-    private static final double[] BPF_A = { 1.0, -3.850372, 5.574444, -3.554681, 0.830301 };
-
-    // Filter state for Direct Form II (not fully implemented here)
-    private final double[] filterState = new double[BPF_A.length - 1];
+    // Windowing and Averaging Constants
+    private static final int WINDOW_SIZE_MS = 100; // Window size in milliseconds
+    private static final int OVERLAP_PERCENTAGE = 50; // Overlap percentage
+    private final int windowSizeSamples;
+    private final int overlapSamples;
 
     private AudioRecord audioRecord;
-    private volatile boolean isRecording;
-
-    // Baseline noise powers
-    private double environmentBaselineNoisePower = 0;
-    private double deviceBaselineNoisePower = 0;
-
-    // Flags to indicate whether a baseline has been recorded
-    private boolean environmentBaselineRecorded = false;
-    private boolean deviceBaselineRecorded = false;
-
-    // Which baseline mode to use when computing SNR ("environment" or "device")
-    private String baselineMode = "environment"; // default
-
-    // Gain factor for device baseline recordings (adjust as needed)
-    private static final double DEVICE_GAIN_FACTOR = 10.0;
-
+    private volatile boolean isTesting = false;
+    private volatile boolean isBaselineRecording = false;
     private final Context context;
-    private final RecordingCallback recordingCallback;
+    private final VoiceQualityTestingCallback voiceQualityTestingCallback;
+    private final MicrophoneTestTestingCallback microphoneTestTestingCallback;
 
-    public AudioProcessor(Context context, RecordingCallback recordingCallback) {
+    private double baselineNoisePower = 0.0; // Initialize to 0.0
+
+    // Constructor (calculate window sizes)
+    public AudioProcessor(Context context, VoiceQualityTestingCallback voiceQualityTestingCallback, MicrophoneTestTestingCallback microphoneTestTestingCallback) {
         this.context = context;
-        this.recordingCallback = recordingCallback;
-    }
+        this.voiceQualityTestingCallback = voiceQualityTestingCallback;
+        this.microphoneTestTestingCallback = microphoneTestTestingCallback;
 
-    /**
-     * Callback interface for the main recording process (baseline, SNR, etc.).
-     */
-    public interface RecordingCallback {
-        void onAudioDataReceived(short[] audioBuffer);
-        void onBaselineRecorded();
-        void onSNRCalculated(double snrValue);
+        // Calculate window and overlap sizes
+        this.windowSizeSamples = (int) ((double) WINDOW_SIZE_MS / 1000 * SAMPLE_RATE);
+        this.overlapSamples = windowSizeSamples * OVERLAP_PERCENTAGE / 100;
     }
-
-    /**
-     * Optional interface for a short microphone test (e.g., 3-sec check).
-     */
-    public interface TestingCallback {
-        void onTestingDataReceived(short[] audioBuffer);
-        void onTestCompleted(double amplitude, double dominantFrequency);
-    }
-
-    // -----------------------------------------------------------------------
-    // Initialization and release
 
     private boolean initializeAudioRecord() {
-        if (BUFFER_SIZE <= 0) {
-            Log.e(TAG, "Invalid buffer size: " + BUFFER_SIZE);
-            return false;
-        }
-        if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO)
-                != PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             Log.e(TAG, "RECORD_AUDIO permission not granted.");
             return false;
         }
-        int audioSource = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N)
-                ? MediaRecorder.AudioSource.UNPROCESSED
-                : MediaRecorder.AudioSource.MIC;
+
         try {
             audioRecord = new AudioRecord(
-                    audioSource,
+                    MediaRecorder.AudioSource.MIC,
                     SAMPLE_RATE,
                     CHANNEL_CONFIG,
                     AUDIO_FORMAT,
-                    BUFFER_SIZE
+                    BUFFER_SIZE // Use the calculated buffer size
             );
             if (audioRecord.getState() != AudioRecord.STATE_INITIALIZED) {
-                Log.e(TAG, "AudioRecord initialization failed");
-                releaseAudioRecord();
+                Log.e(TAG, "❌ AudioRecord initialization failed");
+                audioRecord = null; // Set to null to allow retries
                 return false;
             }
             return true;
         } catch (IllegalArgumentException e) {
             Log.e(TAG, "Invalid AudioRecord parameters", e);
-            releaseAudioRecord();
             return false;
         }
     }
 
-    private void releaseAudioRecord() {
+    public void startBaselineRecording() {
+        if (!initializeAudioRecord()) {
+            Log.e(TAG, "startBaselineRecording: Failed to initialize AudioRecord.");
+            return;
+        }
+
+        isBaselineRecording = true;
+        if (microphoneTestTestingCallback != null) {
+            microphoneTestTestingCallback.onMicrophoneActive(true);
+        }
+
+        new Thread(() -> {
+            try {
+                audioRecord.startRecording();
+                processBaselineNoise();
+            } catch (Exception e) {
+                Log.e(TAG, "Exception in startBaselineRecording", e);
+            } finally {
+                stopRecording(); // Use the common stopRecording method
+                if (microphoneTestTestingCallback != null) {
+                    microphoneTestTestingCallback.onMicrophoneActive(false);
+                }
+            }
+        }).start();
+    }
+
+
+    private void processBaselineNoise() {
+        short[] buffer = new short[windowSizeSamples]; // Use windowSizeSamples
+        int totalReads = 0;
+        double sumNoisePower = 0;
+
+        long startTime = System.currentTimeMillis();
+        long recordingDuration = 5000; // 5 seconds
+
+        while (isBaselineRecording && System.currentTimeMillis() - startTime < recordingDuration) {
+            int shortsRead = audioRecord.read(buffer, 0, windowSizeSamples);
+            if (shortsRead > 0) {
+                // Apply Hanning window
+                applyHanningWindow(buffer, shortsRead);
+                sumNoisePower += calculatePower(buffer, shortsRead);
+                totalReads++;
+            }
+        }
+
+        if (totalReads > 0) {
+            baselineNoisePower = sumNoisePower / totalReads;
+            // Determine baseline quality (your original logic, but using calculated baselineNoisePower)
+            String qualityLabel;
+            int qualityLevel;
+
+            if (baselineNoisePower < 200) {
+                qualityLabel = "Excellent";
+                qualityLevel = 1;
+            } else if (baselineNoisePower < 500) {
+                qualityLabel = "Good";
+                qualityLevel = 2;
+            } else if (baselineNoisePower < 1000) {
+                qualityLabel = "Fair";
+                qualityLevel = 3;
+            } else if (baselineNoisePower < 2000) {
+                qualityLabel = "Poor";
+                qualityLevel = 4;
+            } else {
+                qualityLabel = "Very Poor";
+                qualityLevel = 5;
+            }
+            if (microphoneTestTestingCallback != null) {
+                new Handler(Looper.getMainLooper()).post(() -> {
+                    microphoneTestTestingCallback.onBaselineQuality(qualityLabel, qualityLevel);
+                    microphoneTestTestingCallback.onBaselineRecorded();
+                });
+            }
+        } else {
+            Log.e(TAG, "No windows read during baseline recording");
+        }
+    }
+
+
+    public void testMicrophone() {
+        if (!initializeAudioRecord()) {
+            Log.e(TAG, "testMicrophone: Failed to initialize AudioRecord.");
+            return;
+        }
+
+        isTesting = true;
+        if (voiceQualityTestingCallback != null) {
+            voiceQualityTestingCallback.onMicrophoneActive(true);
+        }
+
+        new Thread(() -> {
+            try {
+                audioRecord.startRecording();
+                processMicrophoneTest();
+            } catch (Exception e) {
+                Log.e(TAG, "Exception in testMicrophone", e);
+            } finally {
+                stopRecording(); // Use common stopRecording
+                if (voiceQualityTestingCallback != null) {
+                    voiceQualityTestingCallback.onMicrophoneActive(false);
+                }
+            }
+        }).start();
+    }
+
+    private void processMicrophoneTest() {
+        short[] buffer = new short[windowSizeSamples]; // Use window size for buffer
+        //removed all totalReads, sumAmplitude, and sumFrequency
+
+        while (isTesting) {
+            int shortsRead = audioRecord.read(buffer, 0, windowSizeSamples);
+            if (shortsRead > 0) {
+                // Apply Hanning window
+                applyHanningWindow(buffer, shortsRead);
+
+                double signalPower = calculatePower(buffer, shortsRead);
+                double snr = calculateSNR(signalPower, baselineNoisePower);
+                double frequency = estimateFrequency(buffer, shortsRead);
+
+
+                if (voiceQualityTestingCallback != null) {
+                    //removed onTestingDataRecieved
+                    //remove onTestCompleted
+                    new Handler(Looper.getMainLooper()).post(() -> voiceQualityTestingCallback.onIntermediateSNR(snr)); // Send intermediate SNR
+                    //removed the handler
+                }
+            }
+        }
+    }
+
+    private void applyHanningWindow(short[] buffer, int validSamples) {
+        for (int n = 0; n < validSamples; n++) {
+            double multiplier = 0.5 * (1 - Math.cos(2 * Math.PI * n / (validSamples - 1)));
+            buffer[n] = (short) (buffer[n] * multiplier);
+        }
+    }
+
+    private double calculatePower(short[] buffer, int validSamples) {
+        double sumOfSquares = 0.0;
+        for (int i = 0; i < validSamples; i++) {
+            sumOfSquares += (double) buffer[i] * buffer[i];
+        }
+        return sumOfSquares / validSamples;
+    }
+    // Improved (but still simple) frequency estimation
+    private double estimateFrequency(short[] buffer, int validSamples) {
+        if (validSamples == 0) {
+            return 0;
+        }
+
+        int numSamples = Math.min(validSamples, buffer.length); // Prevent out-of-bounds access
+        int peakIndex = 0;
+        short maxValue = 0;
+
+        // Find the index of the peak value (highest amplitude)
+        for (int i = 0; i < numSamples; i++) {
+            if (Math.abs(buffer[i]) > maxValue) {
+                maxValue = (short) Math.abs(buffer[i]);
+                peakIndex = i;
+            }
+        }
+
+        // Find the next zero crossing *after* the peak
+        int lastZeroCrossingIndex = -1;
+
+        // Start searching for zero crossings after the peak
+        for (int i = peakIndex; i < numSamples - 1; i++) {
+            if ((buffer[i] > 0 && buffer[i + 1] <= 0) || (buffer[i] < 0 && buffer[i + 1] >= 0)) {
+                // Zero crossing found
+                if (lastZeroCrossingIndex != -1) {
+                    //calculate the distance between zero crossing
+                    int samplesBetweenZeroCrossings = i - lastZeroCrossingIndex;
+                    //check for div by zero
+                    if (samplesBetweenZeroCrossings > 0){
+                        //calculate the frequency and return it
+                        return SAMPLE_RATE / (double) (2 * samplesBetweenZeroCrossings);
+                    }
+                }
+                lastZeroCrossingIndex = i;
+            }
+        }
+
+        return 0; // No frequency detected
+    }
+
+    private double calculateSNR(double signalPower, double noisePower) {
+        if (noisePower == 0) {
+            return 100.0; // A large value, indicating very good SNR
+        }
+        if (signalPower == 0){
+            return 0;
+        }
+        double snr = 10 * Math.log10(signalPower / noisePower);
+        // Clamp the SNR to be between 0 and 100 dB
+        return Math.max(0.0, Math.min(100.0, snr));
+    }
+
+
+    // Unified stopRecording method
+    private void stopRecording() {
+        if (audioRecord != null) {
+            try {
+                if (isBaselineRecording || isTesting) { //check if it is recording
+                    audioRecord.stop();
+                }
+                isTesting = false;
+                isBaselineRecording = false;
+                Log.d(TAG, "⏺️ Recording stopped.");
+            } catch (IllegalStateException e) {
+                Log.e(TAG, "Error stopping recording", e);
+            }
+        }
+    }
+
+    public void release() {
+        stopRecording(); // Ensure recording is stopped before releasing
         if (audioRecord != null) {
             audioRecord.release();
             audioRecord = null;
         }
     }
 
-    private void stopAudioRecord() {
-        isRecording = false;
-        if (audioRecord != null) {
-            try {
-                if (audioRecord.getRecordingState() == AudioRecord.RECORDSTATE_RECORDING) {
-                    audioRecord.stop();
-                }
-            } catch (IllegalStateException e) {
-                Log.e(TAG, "Error stopping AudioRecord", e);
-            } finally {
-                releaseAudioRecord();
-            }
-        }
+    // Callback interfaces (keep your existing ones, but adjust method names)
+    public interface VoiceQualityTestingCallback {
+        // Remove onTestingDataReceived
+        // Remove onTestCompleted
+        void onIntermediateSNR(double snr); // Use this for per-window SNR updates
+        void onMicrophoneActive(boolean isActive);
     }
 
-    // -----------------------------------------------------------------------
-    // Baseline recording
-
-    /**
-     * Record the environment baseline (e.g., 5000 ms).
-     */
-    public void recordEnvironmentBaseline() {
-        if (!initializeAudioRecord()) {
-            Log.e(TAG, "recordEnvironmentBaseline: Failed to initialize AudioRecord.");
-            return;
-        }
-        isRecording = true;
-        new Thread(() -> {
-            processBaseline(5000, "environment");
-            stopAudioRecord();
-        }).start();
-    }
-
-    /**
-     * Record the device hum baseline (e.g., 3000 ms).
-     */
-    public void recordDeviceHumBaseline() {
-        if (!initializeAudioRecord()) {
-            Log.e(TAG, "recordDeviceHumBaseline: Failed to initialize AudioRecord.");
-            return;
-        }
-        isRecording = true;
-        new Thread(() -> {
-            processBaseline(3000, "device");
-            stopAudioRecord();
-        }).start();
-    }
-
-    /**
-     * Process baseline measurement for the given duration and type.
-     *
-     * @param baselineDurationMs Duration in milliseconds.
-     * @param type               "environment" or "device"
-     */
-    private void processBaseline(long baselineDurationMs, String type) {
-        short[] buffer = new short[BUFFER_SIZE];
-        double[] powerMeasurements = new double[50];
-        int measurementsCount = 0;
-        long startTime = System.currentTimeMillis();
-        Log.d(TAG, "processBaseline: Starting " + type + " baseline recording for " + baselineDurationMs + "ms...");
-        while (isRecording && (System.currentTimeMillis() - startTime) < baselineDurationMs) {
-            int read = audioRecord.read(buffer, 0, BUFFER_SIZE);
-            Log.d(TAG, "audioRecord.read returned: " + read);
-            if (read < 0) {
-                Log.w(TAG, "processBaseline: audioRecord.read returned " + read);
-                break;
-            }
-            if (read > 0) {
-                // Log a few sample values for debugging purposes
-                StringBuilder sampleLog = new StringBuilder();
-                for (int i = 0; i < Math.min(read, 5); i++) {
-                    sampleLog.append(buffer[i]).append(" ");
-                }
-                Log.d(TAG, "Raw sample values: " + sampleLog.toString());
-                double[] rawData = convertShortToDouble(buffer, read);
-                if ("device".equals(type)) {
-                    // Apply gain for device baseline recordings
-                    for (int i = 0; i < rawData.length; i++) {
-                        rawData[i] *= DEVICE_GAIN_FACTOR;
-                    }
-                }
-                double currentPower = calculatePower(rawData);
-                Log.d(TAG, "Current power for " + type + " baseline: " + currentPower);
-                powerMeasurements[measurementsCount % powerMeasurements.length] = currentPower;
-                measurementsCount++;
-            }
-        }
-        measurementsCount = Math.min(measurementsCount, powerMeasurements.length);
-        double baselinePower = 0;
-        if (measurementsCount == 0) {
-            baselinePower = 0;
-            Log.w(TAG, "No valid baseline measurements recorded for " + type + ".");
-        } else {
-            double[] actualData = Arrays.copyOf(powerMeasurements, measurementsCount);
-            Arrays.sort(actualData);
-            int midIndex = measurementsCount / 2;
-            if (measurementsCount % 2 == 1) {
-                baselinePower = actualData[midIndex];
-            } else {
-                baselinePower = (actualData[midIndex - 1] + actualData[midIndex]) / 2.0;
-            }
-        }
-        Log.d(TAG, type + " baseline noise power: " + baselinePower);
-        if ("environment".equals(type)) {
-            environmentBaselineNoisePower = baselinePower;
-            environmentBaselineRecorded = true;
-        } else if ("device".equals(type)) {
-            deviceBaselineNoisePower = baselinePower;
-            deviceBaselineRecorded = true;
-        }
-        if (recordingCallback != null) {
-            recordingCallback.onBaselineRecorded();
-        }
-    }
-
-    // -----------------------------------------------------------------------
-    // Main recording (SNR calculation)
-
-    /**
-     * Set the baseline mode to use when computing SNR.
-     *
-     * @param mode "device" or "environment"
-     */
-    public void setBaselineMode(String mode) {
-        if ("device".equalsIgnoreCase(mode) || "environment".equalsIgnoreCase(mode)) {
-            baselineMode = mode.toLowerCase();
-            Log.d(TAG, "Baseline mode set to: " + baselineMode);
-        }
-    }
-
-    /**
-     * Get the current baseline mode.
-     *
-     * @return The baseline mode ("device" or "environment").
-     */
-    public String getBaselineMode() {
-        return baselineMode;
-    }
-
-    /**
-     * Start main audio recording using the current baseline.
-     */
-    public void startRecording() {
-        if (!initializeAudioRecord()) {
-            Log.e(TAG, "startRecording: Failed to initialize AudioRecord.");
-            return;
-        }
-        double selectedBaseline = baselineMode.equals("device")
-                ? deviceBaselineNoisePower
-                : environmentBaselineNoisePower;
-        if (selectedBaseline <= 0) {
-            Log.e(TAG, "No valid " + baselineMode + " baseline recorded. Baseline noise power=" + selectedBaseline);
-            return;
-        }
-        isRecording = true;
-        new Thread(() -> {
-            try {
-                audioRecord.startRecording();
-                processRecording(selectedBaseline);
-            } finally {
-                stopAudioRecord();
-            }
-        }).start();
-    }
-
-    private void processRecording(double baselineNoise) {
-        short[] buffer = new short[BUFFER_SIZE];
-        Log.d(TAG, "processRecording: Starting main recording. Baseline (" + baselineMode + ")=" + baselineNoise);
-        while (isRecording) {
-            int read = audioRecord.read(buffer, 0, BUFFER_SIZE);
-            if (read < 0) {
-                Log.w(TAG, "processRecording: audioRecord.read returned " + read + ", stopping.");
-                break;
-            }
-            if (read > 0) {
-                double[] rawData = convertShortToDouble(buffer, read);
-                double signalPower = calculatePower(rawData);
-                double snrDb = 10 * Math.log10(signalPower / baselineNoise);
-                if (recordingCallback != null) {
-                    recordingCallback.onAudioDataReceived(Arrays.copyOf(buffer, read));
-                    recordingCallback.onSNRCalculated(snrDb);
-                }
-                Log.v(TAG, String.format("SNR=%.2f dB, signalPower=%.6f, baselineNoisePower=%.6f",
-                        snrDb, signalPower, baselineNoise));
-            }
-        }
-    }
-
-    // -----------------------------------------------------------------------
-    // Microphone test (3-second amplitude/frequency check)
-
-    public void testMicrophone(TestingCallback callback) {
-        if (!initializeAudioRecord()) {
-            Log.e(TAG, "testMicrophone: Failed to initialize AudioRecord.");
-            return;
-        }
-        isRecording = true;
-        new Thread(() -> {
-            try {
-                audioRecord.startRecording();
-                short[] buffer = new short[BUFFER_SIZE];
-                double maxAmplitude = 0.0;
-                double dominantFreq = 0.0;
-                long startTime = System.currentTimeMillis();
-                while (isRecording && (System.currentTimeMillis() - startTime) < 3000) {
-                    int read = audioRecord.read(buffer, 0, BUFFER_SIZE);
-                    if (read < 0) {
-                        Log.w(TAG, "testMicrophone: read returned " + read);
-                        break;
-                    }
-                    if (read > 0) {
-                        double[] rawData = convertShortToDouble(buffer, read);
-                        double amplitude = calculateAmplitude(rawData);
-                        double freq = calculateDominantFrequency(rawData);
-                        if (callback != null) {
-                            callback.onTestingDataReceived(Arrays.copyOf(buffer, read));
-                        }
-                        if (amplitude > maxAmplitude) {
-                            maxAmplitude = amplitude;
-                            dominantFreq = freq;
-                        }
-                    }
-                }
-                if (callback != null) {
-                    callback.onTestCompleted(maxAmplitude, dominantFreq);
-                }
-            } finally {
-                stopAudioRecord();
-            }
-        }).start();
-    }
-
-    // -----------------------------------------------------------------------
-    // Utility methods
-
-    /**
-     * Convert an array of short samples to an array of doubles in the range [-1, 1].
-     */
-    private double[] convertShortToDouble(short[] input, int length) {
-        if (length <= 0) {
-            return new double[0];
-        }
-        double[] output = new double[length];
-        for (int i = 0; i < length; i++) {
-            output[i] = input[i] / 32768.0;
-        }
-        return output;
-    }
-
-    /**
-     * Placeholder for a bandpass filter using Direct Form II.
-     * Currently bypasses filtering by ignoring past sample history.
-     */
-    private double[] applyBandpassFilter(short[] input, int length) {
-        if (length <= 0) {
-            Log.w(TAG, "applyBandpassFilter: length=" + length + ", returning empty array.");
-            return new double[0];
-        }
-        double[] output = new double[length];
-        for (int i = 0; i < length; i++) {
-            double sample = input[i] / 32768.0;
-            double y = BPF_B[0] * sample + filterState[0];
-            for (int j = 1; j < BPF_B.length; j++) {
-                if (j < BPF_A.length) {
-                    y += (BPF_B[j] * 0) - (BPF_A[j] * filterState[j - 1]);
-                } else {
-                    y += (BPF_B[j] * 0);
-                }
-            }
-            System.arraycopy(filterState, 0, filterState, 1, filterState.length - 1);
-            filterState[0] = y;
-            output[i] = y;
-        }
-        return output;
-    }
-
-    private double calculatePower(double[] buffer) {
-        if (buffer.length == 0) return 0;
-        double sum = 0;
-        for (double val : buffer) {
-            sum += val * val;
-        }
-        return sum / buffer.length;
-    }
-
-    private double calculateAmplitude(double[] buffer) {
-        if (buffer.length == 0) return 0;
-        double sum = 0;
-        for (double val : buffer) {
-            sum += Math.abs(val);
-        }
-        return sum / buffer.length;
-    }
-
-    private double calculateDominantFrequency(double[] buffer) {
-        if (buffer.length == 0) return 0;
-        int fftSize = 1024;
-        double[] fftBuffer = new double[fftSize * 2];
-        System.arraycopy(buffer, 0, fftBuffer, 0, Math.min(buffer.length, fftSize));
-        DoubleFFT_1D fft = new DoubleFFT_1D(fftSize);
-        fft.realForward(fftBuffer);
-        double maxMagnitude = 0.0;
-        int maxIndex = 0;
-        for (int i = 0; i < fftSize / 2; i++) {
-            double re = fftBuffer[2 * i];
-            double im = fftBuffer[2 * i + 1];
-            double magnitude = Math.sqrt(re * re + im * im);
-            if (magnitude > maxMagnitude) {
-                maxMagnitude = magnitude;
-                maxIndex = i;
-            }
-        }
-        return (maxIndex * SAMPLE_RATE) / (double) fftSize;
-    }
-
-    // -----------------------------------------------------------------------
-    // Additional Public Methods
-
-    public void stopBaselineRecording() {
-        stopAudioRecord();
-    }
-
-    public void stopRecording() {
-        stopAudioRecord();
-    }
-
-    public boolean isEnvironmentBaselineRecorded() {
-        return environmentBaselineRecorded;
-    }
-
-    public boolean isDeviceHumBaselineRecorded() {
-        return deviceBaselineRecorded;
+    public interface MicrophoneTestTestingCallback {
+        void onBaselineRecorded();
+        void onBaselineQuality(String qualityLabel, int qualityLevel);
+        void onMicrophoneActive(boolean isActive);
     }
 }
