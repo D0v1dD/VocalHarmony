@@ -1,76 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <!-- Application Name -->
     <string name="app_name">VocalHarmony</string>
+    <string name="action_settings">Settings</string>
+    <string name="permission_required">Permission required for this feature.</string> <string name="audio_processor_error">Error initializing microphone. Please try again.</string>
+    <string name="no_data">N/A</string> <string name="mic_status_desc">Microphone Status</string>
 
-    <!-- Toolbar Description -->
-    <string name="app_toolbar_description">App Toolbar</string>
-
-    <!-- Recording & Baseline Testing -->
-    <string name="record_baseline">Record Baseline</string>
+    <string name="title_home">Home</string> <string name="title_microphone_test">Microphone Test</string> <string name="title_record_yourself">Record Audio</string> <string name="record_baseline">Record Baseline</string>
     <string name="recording_baseline">Recording...</string>
     <string name="baseline_recorded">Baseline Recorded</string>
     <string name="baseline_recorded_toast">Baseline noise recorded!</string>
-    <string name="baseline_quality_label">Baseline Quality</string>
-    <string name="baseline_quality_level">Level</string>
-    <string name="record_baseline_first">Please record baseline in the Microphone Test section.</string>
-    <string name="record_baseline_noise">Record Baseline Noise</string>
-    <string name="mic_unsuitable_low_amplitude">Microphone is unsuitable (Low Amplitude)</string>
-    <string name="mic_quality_poor">Microphone quality is poor</string>
-    <string name="mic_quality_moderate">Microphone quality is moderate</string>
-    <string name="mic_quality_good">Microphone quality is good</string>
+    <string name="baseline_quality_label">Baseline Quality:</string> <string name="record_baseline_first">Please record baseline in the Microphone Test section first.</string> <string name="baseline_quality_format">Baseline Quality: %1$s</string> <string name="baseline_level_format">(Level: %1$d)</string> <string name="mic_quality_excellent">Excellent</string>
+    <string name="mic_quality_good">Good</string>
+    <string name="mic_quality_moderate">Fair</string> <string name="mic_quality_poor">Poor</string>
+    <string name="mic_quality_very_poor">Very Poor</string>
 
-    <!-- Button & Misc Strings -->
-    <string name="start_test">Start Test</string>
-    <string name="stop_test">Stop Test</string>
-    <string name="stop_microphone_test">Stop Microphone Test</string>
-    <string name="reset_button">Reset</string>
-    <string name="graph_button">Graph</string>
-    <string name="permission_required">Microphone permission is required for this feature.</string>
-    <string name="audio_processor_error">Error initializing microphone. Please try again.</string>
 
-    <!-- Microphone Suitability Results -->
-    <string name="mic_unsuitable">Microphone may not be suitable for capturing electrolarynx sounds.</string>
-    <string name="mic_suitable">Microphone seems suitable for capturing electrolarynx sounds.</string>
+    <string name="start_snr_test">Start SNR Test</string> <string name="stop_snr_test">Stop SNR Test</string>  <string name="reset_button_label">Reset</string> <string name="snr_bar_description">SNR bar showing signal-to-noise ratio</string>
+    <string name="current_snr_label">Current SNR:</string> <string name="max_snr_label">Max SNR:</string> <string name="snr_default_value">-- dB</string> <string name="record_button">Record</string>
+    <string name="play_button">Play</string>
+    <string name="stop_button">Stop</string> <string name="share_button">Share</string>
+    <string name="stop_audio_recording">Stop Recording</string> <string name="recording_started">Recording started</string>
+    <string name="recording_stopped">Recording stopped</string>
+    <string name="playback_started">Playback started</string>
+    <string name="playback_stopped">Playback stopped</string>
+    <string name="status_ready">Ready to record</string>
+    <string name="status_recording">Recording... %02d:%02d</string>
+    <string name="status_stopping">Stopping...</string>
+    <string name="status_playing">Playing: %s</string>
+    <string name="status_saved">Saved: %s</string>
+    <string name="status_error_playback">Error playing audio</string>
+    <string name="status_error_recording">Error during recording</string>
+    <string name="status_error_saving">Error saving file</string>
+    <string name="status_no_file">No recording available</string>
 
-    <!-- Signal-to-Noise Ratio (SNR) -->
-    <string name="snr_info">SNR: -- dB</string>
-    <string name="start_recording">Start SNR Test</string>
-    <string name="stop_recording">Stop SNR Test</string>
-    <string name="start_microphone_test">Start Microphone Test</string>
 
-    <!-- Accessibility Content Descriptions and Instructions -->
-    <string name="record_baseline_noise_button">Button to record baseline noise</string>
-    <string name="start_recording_button">Button to start recording</string>
-    <string name="stop_recording_button">Button to stop recording</string>
-    <string name="view_saved_files_button">Button to view saved files</string>
-    <string name="snr_bar_description">SNR bar showing signal-to-noise ratio</string>
-    <string name="audio_chart_description">Real-time audio chart</string>
-    <string name="mic_status_desc">Microphone Status</string>
-
-    <!-- Menu / Navigation Items -->
-    <string name="scroll_view_description">Scrollable content</string>
-    <string name="action_settings">Settings</string>
-    <string name="title_home">Home</string>
-    <string name="title_dashboard">Dashboard</string>
-    <string name="title_notifications">Notifications</string>
-
-    <!-- Advanced Info -->
-    <string name="microphone_test_instructions">Press &quot;Start Test&quot; and produce a tone with your electrolarynx.</string>
-    <string name="testing_in_progress">Testing...</string>
-    <string name="advanced_information">Advanced Information:</string>
-    <string name="show_advanced_info">Show Advanced Info</string>
-    <string name="hide_advanced_info">Hide Advanced Info</string>
-
-    <!-- Additional SNR Format Strings (if needed) -->
-    <string name="baseline_quality_format">Baseline Quality: %1$s</string>
-    <string name="baseline_level_format">Level: %1$d</string>
-
-    <!-- AccessDataFragment: Latest/Best Score, SNR, and placeholders -->
-    <string name="latest_score_label">Latest Score:</string>
-    <string name="best_score_label">Best Score:</string>
-    <string name="s2n_label">SNR:</string>
-    <string name="no_data">N/A</string>
-
-</resources>
+    <string name="app_toolbar_description">App Toolbar</string>
+    </resources>

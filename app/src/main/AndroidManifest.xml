@@ -2,29 +2,22 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Required Permissions -->
-
-    <!-- Permission for recording audio -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
-    <!-- Modify audio settings -->
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 
-    <!-- Foreground Service (For Audio Processing Stability) -->
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
-
-    <!-- For accessing and saving files (Required for Android versions below 29) -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
 
-    <!-- Media permissions for Android 33+ (For handling saved audio files) -->
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" android:maxSdkVersion="32" />
-    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" android:maxSdkVersion="32" />
-
-    <!-- App Feature Declarations -->
     <uses-feature android:name="android.hardware.microphone" android:required="true" />
     <uses-feature android:name="android.hardware.audio.pro" android:required="false" />
+
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.SEND" />
+            <data android:mimeType="audio/wav" /> </intent>
+    </queries>
 
     <application
         android:allowBackup="true"
@@ -35,25 +28,25 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.VocalHarmony"
-        tools:targetApi="33">
+        tools:targetApi="33"> <activity
+        android:name=".MainActivity"
+        android:exported="true"
+        android:label="@string/app_name" android:theme="@style/Theme.VocalHarmony">
+        <intent-filter>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent-filter>
+    </activity>
 
-        <!-- Main Activity Declaration -->
-        <activity
-            android:name=".MainActivity"
-            android:exported="true"
-            android:theme="@style/Theme.VocalHarmony">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
-
-        <!-- Foreground Service for Audio Recording -->
-        <service
-            android:name=".services.AudioForegroundService"
-            android:foregroundServiceType="mediaProjection"
-            android:permission="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION"
-            android:exported="false" />
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.provider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
 
     </application>
 
