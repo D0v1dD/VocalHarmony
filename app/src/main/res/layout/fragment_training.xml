@@ -6,58 +6,60 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:padding="16dp"
-    tools:context=".ui.TrainingFragment"> <ImageView
+    tools:context=".ui.home.TrainingFragment"> <ImageView
     android:id="@+id/mic_status_indicator"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
     android:layout_marginTop="8dp"
-    android:contentDescription="@string/mic_status_description"
-    app:layout_constraintEnd_toEndOf="parent"
+    android:contentDescription="@string/mic_status_desc" app:layout_constraintEnd_toEndOf="parent"
     app:layout_constraintTop_toTopOf="parent"
     app:srcCompat="@drawable/ic_mic_off" /> <Button
     android:id="@+id/button_voice_quality"
     android:layout_width="0dp"
     android:layout_height="wrap_content"
+    android:layout_marginTop="16dp"
     android:text="Voice Quality"
-    app:layout_constraintTop_toBottomOf="@id/mic_status_indicator"
-    app:layout_constraintStart_toStartOf="parent"
     app:layout_constraintEnd_toEndOf="parent"
-    android:layout_marginTop="16dp" />
+    app:layout_constraintStart_toStartOf="parent"
+    app:layout_constraintTop_toBottomOf="@id/mic_status_indicator" />
 
     <Button
         android:id="@+id/button_word_enunciation"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
         android:text="Word Enunciation"
-        app:layout_constraintTop_toBottomOf="@+id/button_voice_quality"
-        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="16dp" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/button_voice_quality" />
 
     <com.example.vocalharmony.ui.home.SNRBar
         android:id="@+id/snr_bar"
         android:layout_width="0dp"
-        android:layout_height="50dp" android:layout_marginTop="24dp"
-        app:layout_constraintTop_toBottomOf="@id/button_word_enunciation"
-        app:layout_constraintStart_toStartOf="parent"
+        android:layout_height="50dp"
+        android:layout_marginTop="24dp"
+        android:contentDescription="@string/snr_bar_description"
         app:layout_constraintEnd_toEndOf="parent"
-        android:contentDescription="@string/snr_bar_description" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/button_word_enunciation" />
 
     <LinearLayout
         android:id="@+id/snr_values_container"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
         android:layout_marginTop="16dp"
-        app:layout_constraintStart_toStartOf="parent"
+        android:orientation="horizontal"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/snr_bar"> <TextView
-        android:id="@+id/text_current_snr_label"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/current_snr_label"
-        android:textAppearance="?attr/textAppearanceBody1"
-        android:layout_marginEnd="8dp"/>
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/snr_bar">
+
+        <TextView
+            android:id="@+id/text_current_snr_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:text="@string/current_snr_label"
+            android:textAppearance="?attr/textAppearanceBody1" />
 
         <TextView
             android:id="@+id/text_current_snr_value"
@@ -66,16 +68,16 @@
             android:layout_weight="1"
             android:text="@string/snr_default_value"
             android:textAppearance="?attr/textAppearanceBody1"
-            android:textStyle="bold"/>
+            android:textStyle="bold" />
 
         <TextView
             android:id="@+id/text_max_snr_label"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/max_snr_label"
-            android:textAppearance="?attr/textAppearanceBody1"
             android:layout_marginStart="16dp"
-            android:layout_marginEnd="8dp"/>
+            android:layout_marginEnd="8dp"
+            android:text="@string/max_snr_label"
+            android:textAppearance="?attr/textAppearanceBody1" />
 
         <TextView
             android:id="@+id/text_max_snr_value"
@@ -84,7 +86,7 @@
             android:layout_weight="1"
             android:text="@string/snr_default_value"
             android:textAppearance="?attr/textAppearanceBody1"
-            android:textStyle="bold"/>
+            android:textStyle="bold" />
 
     </LinearLayout>
 
@@ -93,38 +95,40 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="24dp"
-        android:text="@string/start_snr_test" app:layout_constraintEnd_toStartOf="@+id/guideline_buttons_training"
+        android:layout_marginEnd="8dp"
+        android:text="@string/start_snr_test"
+        app:layout_constraintEnd_toStartOf="@+id/guideline_buttons_training"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/snr_values_container" android:layout_marginEnd="8dp"/>
+        app:layout_constraintTop_toBottomOf="@id/snr_values_container" />
 
     <Button
         android:id="@+id/button_stop_snr"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="@string/stop_snr_test" android:visibility="gone"
-        app:layout_constraintStart_toStartOf="@id/button_start_snr"
+        android:text="@string/stop_snr_test"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="@id/button_start_snr"
         app:layout_constraintEnd_toEndOf="@id/button_start_snr"
-        app:layout_constraintTop_toTopOf="@id/button_start_snr"
-        app:layout_constraintBottom_toBottomOf="@id/button_start_snr"/>
+        app:layout_constraintStart_toStartOf="@id/button_start_snr"
+        app:layout_constraintTop_toTopOf="@id/button_start_snr" />
 
 
     <Button
         android:id="@+id/button_reset"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
         android:text="@string/reset_button_label"
-        app:layout_constraintStart_toEndOf="@+id/guideline_buttons_training"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="@id/button_start_snr"
         app:layout_constraintBottom_toBottomOf="@id/button_start_snr"
-        android:layout_marginStart="8dp"/>
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/guideline_buttons_training"
+        app:layout_constraintTop_toTopOf="@id/button_start_snr" />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/guideline_buttons_training"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        app:layout_constraintGuide_percent="0.5"/>
-
+        app:layout_constraintGuide_percent="0.5" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

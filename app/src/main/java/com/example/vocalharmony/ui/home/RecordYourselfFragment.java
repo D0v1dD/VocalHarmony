@@ -166,6 +166,8 @@ public class RecordYourselfFragment extends Fragment {
     // --- New Permission Handling Methods ---
 
     private boolean hasAudioPermission() {
+        // Added null check for context safety
+        if (getContext() == null) return false;
         return ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.RECORD_AUDIO)
                 == PackageManager.PERMISSION_GRANTED;
     }
@@ -175,13 +177,10 @@ public class RecordYourselfFragment extends Fragment {
         if (shouldShowRequestPermissionRationale(Manifest.permission.RECORD_AUDIO)) {
             // Example: Show a simple Toast. A dialog is better for complex explanations.
             Toast.makeText(requireContext(), "Recording permission allows the app to capture audio.", Toast.LENGTH_LONG).show();
-            // You could show a Dialog here explaining why the permission is needed before requesting.
         }
         // Launch the permission request
         requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO);
     }
-
-    // Note: onRequestPermissionsResult() is removed as it's replaced by the ActivityResultLauncher callback
 
     // --- Recording Logic ---
 
@@ -194,7 +193,7 @@ public class RecordYourselfFragment extends Fragment {
         String sourceUsed = "UNPROCESSED";
 
         // Double-check permission just before creating AudioRecord
-        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+        if (!hasAudioPermission()) {
             updateStatusText("Error: Permission missing.");
             Toast.makeText(requireContext(), "Cannot record without permission.", Toast.LENGTH_SHORT).show();
             return; // Don't proceed
@@ -209,8 +208,6 @@ public class RecordYourselfFragment extends Fragment {
                 return;
             }
 
-            // Use try-with-resources for AutoCloseable AudioRecord (available API 29+)
-            // For broader compatibility, manage release manually as done below.
             audioRecord = new AudioRecord(audioSource, SAMPLE_RATE, CHANNEL_CONFIG, AUDIO_FORMAT, BUFFER_SIZE);
 
             if (audioRecord.getState() != AudioRecord.STATE_INITIALIZED) {
@@ -235,7 +232,10 @@ public class RecordYourselfFragment extends Fragment {
             executorService.execute(this::writeAudioDataToFile); // Start background writing
 
             mainHandler.post(() -> { // Update UI on main thread
-                buttonRecord.setText(R.string.stop_recording);
+                // *** THIS IS THE CORRECTED LINE ***
+                buttonRecord.setText(R.string.stop_audio_recording); // Use the renamed string ID
+                // *** END OF CORRECTION ***
+
                 buttonPlay.setEnabled(false);
                 buttonShare.setEnabled(false);
                 buttonStop.setVisibility(View.VISIBLE);
@@ -381,11 +381,11 @@ public class RecordYourselfFragment extends Fragment {
         releaseAudioRecord(); // Release AudioRecord resources
 
         // Update UI elements
-        buttonRecord.setText(R.string.record_button);
-        buttonRecord.setEnabled(true);
-        buttonPlay.setEnabled(audioFilePath != null);
+        buttonRecord.setText(R.string.record_button); // Reset button text
+        buttonRecord.setEnabled(true); // Re-enable record button
+        buttonPlay.setEnabled(audioFilePath != null); // Enable play only if a valid file was saved
         buttonShare.setEnabled(audioFilePath != null && recordingFile != null && recordingFile.exists() && recordingFile.length() > 44); // Check size > header
-        buttonStop.setVisibility(View.GONE);
+        buttonStop.setVisibility(View.GONE); // Hide stop button
 
         // Set final status message if not already set by write thread
         if (textRecordingStatus != null) {
@@ -479,6 +479,12 @@ public class RecordYourselfFragment extends Fragment {
         }
 
         try {
+            // Ensure context is not null before proceeding
+            if (getContext() == null) {
+                Log.e(TAG,"Context is null, cannot get package name for FileProvider.");
+                Toast.makeText(requireContext(), "Cannot share recording (Internal error).", Toast.LENGTH_SHORT).show();
+                return;
+            }
             String authority = requireContext().getPackageName() + ".provider";
             Uri fileUri = FileProvider.getUriForFile(requireContext(), authority, recordingFile);
             Log.d(TAG, "Sharing URI: " + fileUri);
@@ -491,7 +497,8 @@ public class RecordYourselfFragment extends Fragment {
             shareIntent.putExtra(Intent.EXTRA_TEXT, "Listen to this recording from VocalHarmony: " + recordingFile.getName());
 
             Intent chooser = Intent.createChooser(shareIntent, "Share Recording via");
-            if (chooser.resolveActivity(requireContext().getPackageManager()) != null) {
+            // Check if there's an app to handle the intent
+            if (getContext() != null && chooser.resolveActivity(requireContext().getPackageManager()) != null) {
                 startActivity(chooser);
                 updateStatusText("Sharing...");
             } else {
@@ -499,11 +506,11 @@ public class RecordYourselfFragment extends Fragment {
                 updateStatusText("Sharing failed: No app found.");
             }
         } catch (IllegalArgumentException e) {
-            Log.e(TAG, "FileProvider error sharing " + recordingFile.getName() + ": " + e.getMessage(), e);
+            Log.e(TAG, "FileProvider error sharing " + (recordingFile != null ? recordingFile.getName() : "null file") + ": " + e.getMessage(), e);
             Toast.makeText(requireContext(), "Sharing setup error. Check FileProvider config.", Toast.LENGTH_LONG).show();
             updateStatusText("Error: Sharing setup issue.");
-        } catch (Exception e) {
-            Log.e(TAG, "Error creating share intent for " + recordingFile.getName() + ": " + e.getMessage(), e);
+        } catch (Exception e) { // Catch other potential errors like ActivityNotFoundException
+            Log.e(TAG, "Error creating/starting share intent for " + (recordingFile != null ? recordingFile.getName() : "null file") + ": " + e.getMessage(), e);
             Toast.makeText(requireContext(), "Could not share recording.", Toast.LENGTH_SHORT).show();
             updateStatusText("Error: Sharing failed.");
         }
@@ -512,8 +519,10 @@ public class RecordYourselfFragment extends Fragment {
     // --- Helper Methods ---
 
     private void updateStatusText(final String status) {
-        mainHandler.post(() -> { // Ensure UI update happens on main thread
-            if (textRecordingStatus != null) {
+        // Use post for safety, even if already on main thread sometimes
+        mainHandler.post(() -> {
+            // Check if view is still valid
+            if (textRecordingStatus != null && isAdded()) {
                 textRecordingStatus.setText(status);
             }
         });
@@ -523,38 +532,44 @@ public class RecordYourselfFragment extends Fragment {
     // Helper to release AudioRecord resources safely
     private void releaseAudioRecord() {
         if (audioRecord != null) {
+            // Use a temporary variable to avoid race condition if another thread nullifies it
+            AudioRecord recordToRelease = audioRecord;
+            audioRecord = null; // Nullify the main reference first
             try {
-                if (audioRecord.getRecordingState() == AudioRecord.RECORDSTATE_RECORDING) {
-                    audioRecord.stop();
+                // Check state before stopping
+                if (recordToRelease.getRecordingState() == AudioRecord.RECORDSTATE_RECORDING) {
+                    recordToRelease.stop();
                     Log.d(TAG,"AudioRecord stopped in release helper.");
                 }
-                audioRecord.release(); // Release native resources
+                recordToRelease.release(); // Release native resources
                 Log.d(TAG,"AudioRecord released in release helper.");
             } catch (Exception e) {
                 Log.e(TAG, "Exception releasing AudioRecord: ", e);
-            } finally {
-                audioRecord = null;
             }
+            // No need to nullify again, already done
         }
     }
 
     // Helper to release MediaPlayer resources safely
     private void releaseMediaPlayer() {
         if (mediaPlayer != null) {
+            MediaPlayer playerToRelease = mediaPlayer;
+            mediaPlayer = null; // Nullify first
+            isPlaying = false; // Ensure flag is reset
             try {
-                if (mediaPlayer.isPlaying()) {
-                    mediaPlayer.stop();
+                // Check state before stopping/resetting if possible
+                if (playerToRelease.isPlaying()) {
+                    playerToRelease.stop();
                 }
-                mediaPlayer.reset();
-                mediaPlayer.release();
+                playerToRelease.reset(); // Good practice before release
+                playerToRelease.release(); // Release native resources
                 Log.d(TAG,"MediaPlayer released in release helper.");
             } catch (Exception e) {
                 Log.e(TAG, "Exception releasing MediaPlayer: ", e);
-            } finally {
-                mediaPlayer = null;
-                isPlaying = false; // Ensure flag is reset here too
             }
         }
+        // Ensure flag is false even if mediaPlayer was already null
+        isPlaying = false;
     }
 
 
@@ -563,41 +578,45 @@ public class RecordYourselfFragment extends Fragment {
     @Override
     public void onPause() {
         super.onPause();
-        // Stop ongoing operations when fragment is not visible
         if (isRecording) {
             Log.w(TAG, "onPause: Fragment paused during recording. Stopping recording.");
-            stopRecording(); // Gracefully stop recording
+            stopRecording();
         }
         if (isPlaying) {
             Log.w(TAG, "onPause: Fragment paused during playback. Stopping playback.");
-            stopPlaying(); // Stop playback
+            stopPlaying();
         }
     }
 
     @Override
     public void onDestroyView() {
         Log.d(TAG,"onDestroyView: Removing handler callbacks.");
-        mainHandler.removeCallbacksAndMessages(null); // Clean up pending messages/runnables
+        mainHandler.removeCallbacksAndMessages(null);
         super.onDestroyView();
-        // UI elements are no longer valid here, don't try to access buttonRecord etc.
+        // Nullify view references to allow garbage collection
+        buttonRecord = null;
+        buttonPlay = null;
+        buttonStop = null;
+        buttonShare = null;
+        textRecordingStatus = null;
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        Log.d(TAG, "onDestroy: Releasing all resources and shutting down executor.");
-        releaseAudioRecord(); // Ensure AudioRecord is released
-        releaseMediaPlayer(); // Ensure MediaPlayer is released
+        Log.d(TAG, "onDestroy: Releasing audio resources and shutting down executor.");
+        // Release resources that are not tied to the view specifically
+        releaseAudioRecord();
+        releaseMediaPlayer();
 
         if (executorService != null && !executorService.isShutdown()) {
-            executorService.shutdown(); // Request shutdown
+            executorService.shutdown();
             Log.d(TAG, "Executor service shutdown requested.");
         }
-        // Consider using executorService.shutdownNow() or awaitTermination if needed
     }
 
 
-    // --- WAV File Helper Methods ---
+    // --- WAV File Helper Methods --- (Ignorable Warnings Here)
 
     /**
      * Writes a basic WAV file header.
@@ -606,15 +625,15 @@ public class RecordYourselfFragment extends Fragment {
      * @throws IOException if an I/O error occurs during writing.
      */
     private void writeWavHeader(OutputStream out, long totalAudioLenBytes) throws IOException {
+        // Warnings about 'always 0' or 'always true' in this method can be ignored
+        // as they relate to constants and the standard WAV format structure.
         long totalDataLen = totalAudioLenBytes + 36;
         long longSampleRate = SAMPLE_RATE;
-        int channels = 1; // Simplified based on constant CHANNEL_CONFIG
-        int bitsPerSample = 16; // Simplified based on constant AUDIO_FORMAT
+        int channels = 1; // Simplified
+        int bitsPerSample = 16; // Simplified
         long byteRate = longSampleRate * channels * bitsPerSample / 8;
         int blockAlign = channels * bitsPerSample / 8;
-
         byte[] header = new byte[44];
-
         header[0] = 'R'; header[1] = 'I'; header[2] = 'F'; header[3] = 'F';
         header[4] = (byte) (totalDataLen & 0xff);
         header[5] = (byte) ((totalDataLen >> 8) & 0xff);
@@ -622,8 +641,8 @@ public class RecordYourselfFragment extends Fragment {
         header[7] = (byte) ((totalDataLen >> 24) & 0xff);
         header[8] = 'W'; header[9] = 'A'; header[10] = 'V'; header[11] = 'E';
         header[12] = 'f'; header[13] = 'm'; header[14] = 't'; header[15] = ' ';
-        header[16] = 16; header[17] = 0; header[18] = 0; header[19] = 0; // Size of fmt chunk
-        header[20] = 1; header[21] = 0; // Format = 1 (PCM)
+        header[16] = 16; header[17] = 0; header[18] = 0; header[19] = 0;
+        header[20] = 1; header[21] = 0;
         header[22] = (byte) channels; header[23] = 0;
         header[24] = (byte) (longSampleRate & 0xff);
         header[25] = (byte) ((longSampleRate >> 8) & 0xff);
@@ -640,7 +659,6 @@ public class RecordYourselfFragment extends Fragment {
         header[41] = (byte) ((totalAudioLenBytes >> 8) & 0xff);
         header[42] = (byte) ((totalAudioLenBytes >> 16) & 0xff);
         header[43] = (byte) ((totalAudioLenBytes >> 24) & 0xff);
-
         out.write(header, 0, 44);
     }
 
@@ -653,23 +671,20 @@ public class RecordYourselfFragment extends Fragment {
     private void updateWavHeader(File file, long totalAudioLenBytes) throws IOException {
         long totalDataLen = totalAudioLenBytes + 36;
         byte[] sizes = new byte[8];
-        // RIFF chunk size (Total data len)
         sizes[0] = (byte) (totalDataLen & 0xff);
         sizes[1] = (byte) ((totalDataLen >> 8) & 0xff);
         sizes[2] = (byte) ((totalDataLen >> 16) & 0xff);
         sizes[3] = (byte) ((totalDataLen >> 24) & 0xff);
-        // Data sub-chunk size (Audio data len)
         sizes[4] = (byte) (totalAudioLenBytes & 0xff);
         sizes[5] = (byte) ((totalAudioLenBytes >> 8) & 0xff);
         sizes[6] = (byte) ((totalAudioLenBytes >> 16) & 0xff);
         sizes[7] = (byte) ((totalAudioLenBytes >> 24) & 0xff);
-
         RandomAccessFile raf = null;
         try {
             raf = new RandomAccessFile(file, "rw");
-            raf.seek(4); // Position for RIFF chunk size
+            raf.seek(4);
             raf.write(sizes, 0, 4);
-            raf.seek(40); // Position for data sub-chunk size
+            raf.seek(40);
             raf.write(sizes, 4, 4);
             Log.d(TAG, "WAV header updated successfully for " + file.getName());
         } finally {

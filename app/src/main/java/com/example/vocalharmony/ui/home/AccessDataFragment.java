@@ -6,7 +6,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
+import android.widget.Button; // Import Button
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -20,32 +20,49 @@ import java.util.Map;
 
 public class AccessDataFragment extends Fragment {
 
-    private TextView textViewLatestScore;  // "Latest Score" label
-    private TextView textViewS2N;         // Latest SNR
-    private TextView textViewBestScore;   // "Best Score" label
-    private TextView textViewBestS2N;     // Best SNR
-    private Button graphButton;           // Button to navigate to GraphFragment (future)
+    // Removed graphButton field declaration
+
+    // Keep TextView fields as they might be updated elsewhere or needed for reference
+    private TextView textViewLatestScore;
+    private TextView textViewS2N;
+    private TextView textViewBestScore;
+    private TextView textViewBestS2N;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View root = inflater.inflate(R.layout.fragment_access_data, container, false);
 
-        // 1) Initialize UI elements
+        // 1) Initialize TextView UI elements
         textViewLatestScore = root.findViewById(R.id.text_latest_score);
         textViewS2N = root.findViewById(R.id.text_s2n);
         textViewBestScore = root.findViewById(R.id.text_best_score);
         textViewBestS2N = root.findViewById(R.id.text_best_s2n);
-        graphButton = root.findViewById(R.id.button_graph);
+
+        // *** FIX: Make graphButton a local variable ***
+        Button graphButton = root.findViewById(R.id.button_graph); // Declare locally
 
         // 2) Load and display data from SharedPreferences
         loadAndDisplayData();
 
-        // 3) Set a click listener to the graphButton to navigate
-        graphButton.setOnClickListener(v -> {
-            // If you have a nav action defined from navigation_data to graphFragment:
-            Navigation.findNavController(v).navigate(R.id.action_navigation_data_to_graphFragment);
-        });
+        // 3) Set a click listener to the local graphButton variable
+        // Ensure the button and navigation action exist
+        if (graphButton != null) { // Add null check for safety
+            graphButton.setOnClickListener(v -> {
+                try {
+                    // If you have a nav action defined from this fragment to graphFragment:
+                    Navigation.findNavController(v).navigate(R.id.action_navigation_data_to_graphFragment); // Make sure this action ID is correct in your nav graph
+                } catch (IllegalArgumentException e) {
+                    // Handle cases where the destination might not be found
+                    android.util.Log.e("AccessDataFragment", "Navigation failed: " + e.getMessage());
+                    // Optionally show a toast to the user
+                    android.widget.Toast.makeText(getContext(), "Cannot navigate to graph.", android.widget.Toast.LENGTH_SHORT).show();
+                }
+            });
+        } else {
+            android.util.Log.w("AccessDataFragment", "Graph button not found in layout.");
+        }
+
 
         return root;
     }
@@ -54,37 +71,46 @@ public class AccessDataFragment extends Fragment {
      * Loads the latest and best SNR values from SharedPreferences and updates the UI.
      */
     private void loadAndDisplayData() {
+        // Safety check for context
+        if (getContext() == null) {
+            android.util.Log.e("AccessDataFragment", "Context is null in loadAndDisplayData.");
+            return;
+        }
+
         // 1) Retrieve SharedPreferences
         SharedPreferences sharedPreferences = requireActivity()
                 .getSharedPreferences("VocalHarmonyPrefs", Context.MODE_PRIVATE);
 
-        // 2) Retrieve all entries. Keys should be in the form "snr_<timestamp>"
+        // 2) Retrieve all entries.
         Map<String, ?> allEntries = sharedPreferences.getAll();
 
-        float latestSNR = 0.0f;  // Will store the most recently recorded SNR
-        float bestSNR = 0.0f;    // Will store the highest SNR
-        String latestTimestamp = "";
+        float latestSNR = 0.0f;
+        float bestSNR = 0.0f;
+        String latestTimestamp = ""; // Initialize to empty string
 
         // 3) Iterate over all entries
         for (Map.Entry<String, ?> entry : allEntries.entrySet()) {
             String key = entry.getKey();
             Object value = entry.getValue();
 
-            // We only care about keys like "snr_2025-03-01 15:35:00"
+            // Check for keys starting with "snr_" and if the value is a Float
             if (key.startsWith("snr_") && value instanceof Float) {
                 float snrValue = (Float) value;
 
-                // Extract timestamp from the key by removing the prefix "snr_"
-                String timestamp = key.substring("snr_".length());
+                // Extract timestamp (handle potential errors if key format is wrong)
+                String timestamp = "";
+                if (key.length() > "snr_".length()) {
+                    timestamp = key.substring("snr_".length());
+                }
 
-                // A simple string compare can track the "latest" timestamp if your format is consistent
-                // e.g. "2025-03-01 15:35:00" is lexicographically comparable if zero-padded
-                if (latestTimestamp.compareTo(timestamp) < 0) {
+                // Compare timestamps lexicographically (assumes YYYY-MM-DD HH:MM:SS format or similar sortable format)
+                // Initialize latestTimestamp check ensures first valid entry becomes the latest initially
+                if (latestTimestamp.isEmpty() || timestamp.compareTo(latestTimestamp) > 0) {
                     latestTimestamp = timestamp;
                     latestSNR = snrValue;
                 }
 
-                // Always update bestSNR with the maximum
+                // Update bestSNR
                 if (snrValue > bestSNR) {
                     bestSNR = snrValue;
                 }
@@ -92,17 +118,26 @@ public class AccessDataFragment extends Fragment {
         }
 
         // 4) Display the data in UI
-        //    (If no data was found, defaults remain 0.0)
-        //    For localization, format the float with 2 decimals
-        String latestSNRText = String.format(Locale.getDefault(), "%.2f", latestSNR);
-        String bestSNRText   = String.format(Locale.getDefault(), "%.2f", bestSNR);
+        String latestSNRText = String.format(Locale.getDefault(), "%.1f", latestSNR); // Format to one decimal place like SNR display
+        String bestSNRText   = String.format(Locale.getDefault(), "%.1f", bestSNR); // Format to one decimal place
 
-        // "Latest Score" and "SNR"
-        textViewLatestScore.setText(getString(R.string.latest_score_label));
-        textViewS2N.setText(getString(R.string.s2n_label) + " " + latestSNRText);
+        // Use try-catch when getting strings in case of resource issues during runtime
+        try {
+            // Set labels directly
+            textViewLatestScore.setText(getString(R.string.latest_score_label));
+            textViewBestScore.setText(getString(R.string.best_score_label));
 
-        // "Best Score" and "SNR"
-        textViewBestScore.setText(getString(R.string.best_score_label));
-        textViewBestS2N.setText(getString(R.string.s2n_label) + " " + bestSNRText);
+            // *** FIX: Use format string for values to avoid concatenation warning ***
+            textViewS2N.setText(getString(R.string.s2n_value_format, getString(R.string.s2n_label), latestSNRText));
+            textViewBestS2N.setText(getString(R.string.s2n_value_format, getString(R.string.s2n_label), bestSNRText));
+
+        } catch (Exception e) {
+            android.util.Log.e("AccessDataFragment", "Error setting text from string resources: " + e.getMessage());
+            // Set default text as fallback
+            textViewLatestScore.setText("Latest Score:");
+            textViewBestScore.setText("Best Score:");
+            textViewS2N.setText("SNR: " + latestSNRText);
+            textViewBestS2N.setText("SNR: " + bestSNRText);
+        }
     }
 }

@@ -1,6 +1,6 @@
 package com.example.vocalharmony.ui.home;
 
-import android.widget.Toast; // <<< Add this line
+import android.widget.Toast; // Keep this import
 import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
@@ -21,19 +21,22 @@ public class AudioProcessor {
     private static final int SAMPLE_RATE = 44100;
     private static final int CHANNEL_CONFIG = AudioFormat.CHANNEL_IN_MONO;
     private static final int AUDIO_FORMAT = AudioFormat.ENCODING_PCM_16BIT;
-    // Made BUFFER_SIZE final and public if needed elsewhere, or keep private
-    private static final int BUFFER_SIZE = AudioRecord.getMinBufferSize(
-            SAMPLE_RATE, CHANNEL_CONFIG, AUDIO_FORMAT);
+    // Calculate buffer size, ensuring it's a multiple of frame size if needed and reasonably large
+    private static final int BUFFER_SIZE = Math.max(
+            AudioRecord.getMinBufferSize(SAMPLE_RATE, CHANNEL_CONFIG, AUDIO_FORMAT) * 2, // Often doubled for safety
+            2048 // Ensure a reasonable minimum
+    );
+
 
     // Window Configuration
     private static final int WINDOW_SIZE_MS = 100;
     private final int windowSizeSamples;
 
     // Internal State
-    private AudioRecord audioRecord; // Renamed internally for clarity
+    private AudioRecord audioRecord;
     private volatile boolean isTesting = false;
     private volatile boolean isBaselineRecording = false;
-    private volatile Thread processingThread = null; // Added: Reference to the active processing thread
+    private volatile Thread processingThread = null;
     private final Context context;
 
     // Callbacks
@@ -54,27 +57,25 @@ public class AudioProcessor {
         this.microphoneTestTestingCallback = microphoneTestTestingCallback;
         this.windowSizeSamples = (int) ((double) WINDOW_SIZE_MS / 1000 * SAMPLE_RATE);
 
-        // Defensive check for buffer size
         if (BUFFER_SIZE <= 0) {
             Log.e(TAG, "!!! Invalid AudioRecord buffer size calculated: " + BUFFER_SIZE);
-            // Consider throwing an exception or setting an error state
         }
     }
 
     /**
      * Initializes AudioRecord, checking for RECORD_AUDIO permission.
+     * Tries preferred audio sources and falls back if necessary.
      *
      * @return true if initialization successful, false otherwise.
      */
     private boolean initializeAudioRecord() {
-        // Avoid re-initializing if already initialized and valid
-        if (audioRecord != null && audioRecord.getState() == AudioRecord.STATE_INITIALIZED) {
-            Log.d(TAG,"AudioRecord already initialized.");
+        if (isReady()) { // Use isReady() to check if already initialized
+            Log.d(TAG, "AudioRecord already initialized and ready.");
             return true;
         }
-        // Release previous instance if it exists but is in a bad state
+        // Release previous instance if it exists but is unusable
         if (audioRecord != null) {
-            Log.w(TAG,"Releasing previous uninitialized AudioRecord instance.");
+            Log.w(TAG,"Releasing previous unusable AudioRecord instance before re-initializing.");
             audioRecord.release();
             audioRecord = null;
         }
@@ -91,44 +92,46 @@ public class AudioProcessor {
             return false;
         }
 
-        try {
-            // Use UNPROCESSED if possible (assuming API 24+)
-            // If targeting lower, stick with MIC or add build checks
-            int audioSource = MediaRecorder.AudioSource.UNPROCESSED; // Or MIC if needed for compatibility
-            Log.d(TAG, "Attempting to initialize AudioRecord with source: " + audioSource);
+        // *** UPDATED INITIALIZATION LOGIC WITH FALLBACK ***
+        int[] audioSources = {
+                MediaRecorder.AudioSource.UNPROCESSED, // Try this first (API 24+)
+                MediaRecorder.AudioSource.MIC          // Fallback to default MIC
+                // MediaRecorder.AudioSource.VOICE_RECOGNITION // Could be another fallback
+        };
 
-            audioRecord = new AudioRecord(
-                    audioSource, // Use UNPROCESSED or MIC
-                    SAMPLE_RATE,
-                    CHANNEL_CONFIG,
-                    AUDIO_FORMAT,
-                    BUFFER_SIZE
-            );
+        for (int source : audioSources) {
+            try {
+                Log.d(TAG, "Attempting to initialize AudioRecord with source: " + source);
+                // Create new instance for this attempt
+                AudioRecord tempAudioRecord = new AudioRecord(
+                        source,
+                        SAMPLE_RATE,
+                        CHANNEL_CONFIG,
+                        AUDIO_FORMAT,
+                        BUFFER_SIZE
+                );
 
-            if (audioRecord.getState() == AudioRecord.STATE_INITIALIZED) {
-                Log.d(TAG, "✅ AudioRecord successfully initialized.");
-                return true;
-            } else {
-                Log.e(TAG, "❌ AudioRecord initialization failed. State: " + audioRecord.getState());
-                if (audioRecord != null) audioRecord.release(); // Clean up failed instance
-                audioRecord = null;
-                return false;
+                if (tempAudioRecord.getState() == AudioRecord.STATE_INITIALIZED) {
+                    Log.d(TAG, "✅ AudioRecord successfully initialized with source: " + source);
+                    audioRecord = tempAudioRecord; // Assign the successful instance
+                    return true; // Success!
+                } else {
+                    Log.w(TAG, "❌ AudioRecord failed to initialize with source: " + source + ". State: " + tempAudioRecord.getState());
+                    tempAudioRecord.release(); // Clean up failed instance
+                }
+            } catch (IllegalArgumentException | SecurityException | UnsupportedOperationException e) {
+                Log.w(TAG, "❌ Failed attempt to initialize AudioRecord with source " + source + ": " + e.getMessage());
+                // Continue to the next audio source in the loop
             }
-        } catch (IllegalArgumentException e) {
-            Log.e(TAG, "❌ Invalid AudioRecord parameters: " + e.getMessage());
-            audioRecord = null; // Ensure null on exception
-            return false;
-        } catch (SecurityException se){
-            Log.e(TAG, "❌ SecurityException initializing AudioRecord: " + se.getMessage());
-            audioRecord = null;
-            return false;
-        } catch (UnsupportedOperationException uoe) {
-            Log.e(TAG, "❌ Unsupported operation for AudioRecord config (maybe UNPROCESSED source?): " + uoe.getMessage());
-            // Consider falling back to MIC if UNPROCESSED fails here
-            audioRecord = null;
-            return false;
         }
+
+        // If loop finishes without returning true, all attempts failed.
+        Log.e(TAG, "❌ All attempts to initialize AudioRecord failed.");
+        audioRecord = null; // Ensure it's null if all attempts failed
+        return false;
+        // *** END OF UPDATED INITIALIZATION LOGIC ***
     }
+
 
     /**
      * Public method to start recording baseline noise.
@@ -138,54 +141,45 @@ public class AudioProcessor {
             Log.w(TAG, "Already recording or testing, cannot start baseline recording now.");
             return;
         }
-
-        stopAndReleaseThread(); // Ensure previous thread is stopped if any remnants exist
-
-        if (!initializeAudioRecord()) {
+        stopAndReleaseThread();
+        if (!initializeAudioRecord()) { // Calls the updated method
             Log.e(TAG, "❌ Failed to initialize AudioRecord. Baseline will NOT be recorded.");
-            // Notify callback?
             if (microphoneTestTestingCallback != null) {
                 new Handler(Looper.getMainLooper()).post(() ->
-                        microphoneTestTestingCallback.onMicrophoneActive(false)); // Indicate failure
+                        microphoneTestTestingCallback.onMicrophoneActive(false));
             }
             return;
         }
-
         isBaselineRecording = true;
-        isTesting = false; // Ensure testing flag is false
+        isTesting = false;
         if (microphoneTestTestingCallback != null) {
-            // Use Handler to ensure callback is on main thread
             new Handler(Looper.getMainLooper()).post(() ->
                     microphoneTestTestingCallback.onMicrophoneActive(true));
         }
-
         Log.d(TAG, "🎤 Starting baseline recording THREAD...");
-        // Store reference to the new thread
         processingThread = new Thread(() -> {
             try {
+                // Check audioRecord state before starting
+                if (audioRecord == null || audioRecord.getState() != AudioRecord.STATE_INITIALIZED) {
+                    throw new IllegalStateException("AudioRecord not initialized before startRecording");
+                }
                 audioRecord.startRecording();
                 Log.d(TAG, "✅ AudioRecord started for baseline.");
-                processBaselineNoise(); // This loop checks isBaselineRecording flag
+                processBaselineNoise();
             } catch (IllegalStateException e) {
                 Log.e(TAG, "❌ IllegalStateException starting baseline recording: " + e.getMessage());
-                // Update UI about error?
-            } catch (Exception e) { // Catch broader exceptions
+            } catch (Exception e) {
                 Log.e(TAG, "❌ Exception in baseline recording thread: " + e.getMessage());
             } finally {
-                // Stop recording ONLY if this thread was the one meant to be recording baseline
-                // This check prevents stopping if another operation started quickly after this one was signaled to stop
-                if (Thread.currentThread() == processingThread && isBaselineRecording) {
-                    stopRecordingInternal(); // Safely stop AudioRecord if needed
-                }
+                // Use internal stop which checks state
+                stopRecordingInternal();
                 Log.d(TAG, "✅ Baseline recording thread finished.");
-
-                // Ensure flags are false after thread finishes
-                isBaselineRecording = false;
+                isBaselineRecording = false; // Ensure flag is false
                 if (microphoneTestTestingCallback != null) {
                     new Handler(Looper.getMainLooper()).post(() ->
                             microphoneTestTestingCallback.onMicrophoneActive(false));
                 }
-                processingThread = null; // Clear thread reference after completion
+                processingThread = null;
             }
         });
         processingThread.start();
@@ -196,8 +190,6 @@ public class AudioProcessor {
      * (Keep existing logic)
      */
     private void processBaselineNoise() {
-        // --- KEEP YOUR EXISTING BASELINE PROCESSING LOGIC HERE ---
-        // Make sure it respects the 'isBaselineRecording' flag
         short[] buffer = new short[windowSizeSamples];
         int totalReads = 0;
         double sumNoisePower = 0.0;
@@ -205,37 +197,39 @@ public class AudioProcessor {
         long recordingDuration = 5000; // 5 seconds
 
         while (isBaselineRecording && (System.currentTimeMillis() - startTime < recordingDuration)) {
-            if (audioRecord == null) break; // Safety check
-            int shortsRead = audioRecord.read(buffer, 0, windowSizeSamples);
-            if (shortsRead > 0) {
-                applyHanningWindow(buffer, shortsRead);
-                sumNoisePower += calculatePower(buffer, shortsRead);
-                totalReads++;
-            } else if (shortsRead < 0) {
-                Log.e(TAG, "AudioRecord read error during baseline: " + shortsRead);
-                break; // Stop on error
+            if (audioRecord == null) { Log.w(TAG, "AudioRecord became null during baseline processing."); break; }
+            try {
+                int shortsRead = audioRecord.read(buffer, 0, windowSizeSamples);
+                if (shortsRead > 0) {
+                    applyHanningWindow(buffer, shortsRead);
+                    sumNoisePower += calculatePower(buffer, shortsRead);
+                    totalReads++;
+                } else if (shortsRead < 0) {
+                    Log.e(TAG, "AudioRecord read error during baseline: " + shortsRead);
+                    break;
+                }
+            } catch (Exception e) { // Catch potential exceptions during read
+                Log.e(TAG, "Exception during AudioRecord.read in baseline: " + e.getMessage(), e);
+                isBaselineRecording = false; // Stop processing on error
             }
         }
-        // --- Keep the rest of your baseline calculation and callback logic ---
+        // Rest of baseline calculation and callback...
         if (totalReads > 0) {
             baselineNoisePower = sumNoisePower / totalReads;
             Log.d(TAG, "Baseline noise power: " + baselineNoisePower);
-            // Determine quality...
-            String qualityLabel; int qualityLevel; // ... your quality logic ...
+            String qualityLabel; int qualityLevel;
             if (baselineNoisePower < 200) { qualityLabel = "Excellent"; qualityLevel = 1; }
             else if (baselineNoisePower < 500) { qualityLabel = "Good"; qualityLevel = 2; }
             else if (baselineNoisePower < 1000) { qualityLabel = "Fair"; qualityLevel = 3; }
             else if (baselineNoisePower < 2000) { qualityLabel = "Poor"; qualityLevel = 4; }
             else { qualityLabel = "Very Poor"; qualityLevel = 5; }
-
             if (microphoneTestTestingCallback != null) {
                 new Handler(Looper.getMainLooper()).post(() -> {
                     microphoneTestTestingCallback.onBaselineQuality(qualityLabel, qualityLevel);
                     microphoneTestTestingCallback.onBaselineRecorded();
                 });
             }
-        } else { Log.e(TAG, "❌ No windows read during baseline recording."); }
-        // --- End of baseline processing logic ---
+        } else { Log.w(TAG, "No windows read during baseline recording."); } // Changed to warning
     }
 
 
@@ -247,56 +241,52 @@ public class AudioProcessor {
             Log.w(TAG, "Already recording or testing, cannot start SNR test now.");
             return;
         }
-        if (baselineNoisePower <= 0.0) { // Use <= 0 for safety
+        if (baselineNoisePower <= 0.0) {
             Log.e(TAG, "❌ Attempted to start SNR test before recording a valid baseline.");
-            // Maybe notify user?
             if (voiceQualityTestingCallback != null) {
                 new Handler(Looper.getMainLooper()).post(() ->
                         Toast.makeText(context, "Please record baseline first.", Toast.LENGTH_SHORT).show());
             }
             return;
         }
-
-        stopAndReleaseThread(); // Ensure previous thread is stopped
-
-        if (!initializeAudioRecord()) {
+        stopAndReleaseThread();
+        if (!initializeAudioRecord()) { // Calls the updated method
             Log.e(TAG, "❌ Failed to initialize AudioRecord. Cannot start SNR test.");
             if (voiceQualityTestingCallback != null) {
                 new Handler(Looper.getMainLooper()).post(() ->
-                        voiceQualityTestingCallback.onMicrophoneActive(false)); // Indicate failure
+                        voiceQualityTestingCallback.onMicrophoneActive(false));
             }
             return;
         }
-
         isTesting = true;
-        isBaselineRecording = false; // Ensure baseline flag is false
+        isBaselineRecording = false;
         if (voiceQualityTestingCallback != null) {
             new Handler(Looper.getMainLooper()).post(() ->
                     voiceQualityTestingCallback.onMicrophoneActive(true));
         }
-
         Log.d(TAG, "🎤 Starting microphone test THREAD...");
         processingThread = new Thread(() -> {
             try {
+                // Check audioRecord state before starting
+                if (audioRecord == null || audioRecord.getState() != AudioRecord.STATE_INITIALIZED) {
+                    throw new IllegalStateException("AudioRecord not initialized before startRecording");
+                }
                 audioRecord.startRecording();
                 Log.d(TAG, "✅ AudioRecord started for microphone test.");
-                processMicrophoneTest(); // This loop checks isTesting flag
+                processMicrophoneTest();
             } catch (IllegalStateException e) {
                 Log.e(TAG, "❌ IllegalStateException starting SNR test recording: " + e.getMessage());
             } catch (Exception e) {
                 Log.e(TAG, "❌ Exception in SNR test thread: " + e.getMessage());
             } finally {
-                if (Thread.currentThread() == processingThread && isTesting) {
-                    stopRecordingInternal(); // Safely stop AudioRecord if needed
-                }
+                stopRecordingInternal();
                 Log.d(TAG, "✅ Microphone test thread finished.");
-                // Ensure flags are false after thread finishes
-                isTesting = false;
+                isTesting = false; // Ensure flag is false
                 if (voiceQualityTestingCallback != null) {
                     new Handler(Looper.getMainLooper()).post(() ->
                             voiceQualityTestingCallback.onMicrophoneActive(false));
                 }
-                processingThread = null; // Clear thread reference
+                processingThread = null;
             }
         });
         processingThread.start();
@@ -307,26 +297,28 @@ public class AudioProcessor {
      * (Keep existing logic)
      */
     private void processMicrophoneTest() {
-        // --- KEEP YOUR EXISTING SNR PROCESSING LOGIC HERE ---
-        // Make sure it respects the 'isTesting' flag
         short[] buffer = new short[windowSizeSamples];
         while (isTesting) {
-            if (audioRecord == null) break;
-            int shortsRead = audioRecord.read(buffer, 0, windowSizeSamples);
-            if (shortsRead > 0) {
-                applyHanningWindow(buffer, shortsRead);
-                double signalPower = calculatePower(buffer, shortsRead);
-                double snr = calculateSNR(signalPower, baselineNoisePower);
-                if (voiceQualityTestingCallback != null) {
-                    new Handler(Looper.getMainLooper()).post(() ->
-                            voiceQualityTestingCallback.onIntermediateSNR(snr));
+            if (audioRecord == null) { Log.w(TAG, "AudioRecord became null during SNR processing."); break; }
+            try {
+                int shortsRead = audioRecord.read(buffer, 0, windowSizeSamples);
+                if (shortsRead > 0) {
+                    applyHanningWindow(buffer, shortsRead);
+                    double signalPower = calculatePower(buffer, shortsRead);
+                    double snr = calculateSNR(signalPower, baselineNoisePower);
+                    if (voiceQualityTestingCallback != null) {
+                        new Handler(Looper.getMainLooper()).post(() ->
+                                voiceQualityTestingCallback.onIntermediateSNR(snr));
+                    }
+                } else if (shortsRead < 0) {
+                    Log.e(TAG, "AudioRecord read error during SNR test: " + shortsRead);
+                    break;
                 }
-            } else if (shortsRead < 0) {
-                Log.e(TAG, "AudioRecord read error during SNR test: " + shortsRead);
-                break; // Stop on error
+            } catch (Exception e) {
+                Log.e(TAG, "Exception during AudioRecord.read in SNR test: " + e.getMessage(), e);
+                isTesting = false; // Stop processing on error
             }
         }
-        // --- End of SNR processing logic ---
     }
 
     /**
@@ -334,41 +326,29 @@ public class AudioProcessor {
      */
     public void stopTesting() {
         Log.d(TAG, "stopTesting() called. Setting flags to false.");
-        isTesting = false;          // Signal testing thread to stop
-        isBaselineRecording = false; // Signal baseline thread to stop
-
-        // The running thread (baseline or testing) should detect the flag change,
-        // finish its current loop, call stopRecordingInternal() in its finally block,
-        // and update the microphoneActive(false) callback.
-        // We don't forcefully stop AudioRecord here to allow the thread to finish cleanly.
+        isTesting = false;
+        isBaselineRecording = false;
+        // Let the running thread finish its loop and call stopRecordingInternal from its finally block.
     }
 
     /**
      * Internal method to safely stop the AudioRecord session.
-     * Should only be called from the processing thread's finally block or release().
      */
     private void stopRecordingInternal() {
         if (audioRecord != null) {
             try {
-                // Check state before stopping
                 if (audioRecord.getRecordingState() == AudioRecord.RECORDSTATE_RECORDING) {
                     Log.d(TAG, "⏹️ Stopping AudioRecord internally...");
                     audioRecord.stop();
                     Log.d(TAG, "✅ AudioRecord stopped internally.");
-                } else {
-                    Log.d(TAG,"AudioRecord was not recording, no need to stop.");
                 }
             } catch (IllegalStateException e) {
-                // This can happen if stop() is called in an invalid state
-                Log.e(TAG, "❌ Error stopping AudioRecord internally: " + e.getMessage());
+                Log.w(TAG, "Error stopping AudioRecord internally (already stopped?): " + e.getMessage()); // Downgraded to warning
             } catch (Exception e) {
-                // Catch any other potential errors during stop
                 Log.e(TAG, "❌ Unexpected error stopping AudioRecord: " + e.getMessage(), e);
             }
-        } else {
-            Log.d(TAG,"stopRecordingInternal called but audioRecord is null.");
         }
-        // Reset flags just in case, although they should be set by stopTesting() caller
+        // Reset flags here as well for robustness
         isTesting = false;
         isBaselineRecording = false;
     }
@@ -376,22 +356,23 @@ public class AudioProcessor {
 
     // Helper method to stop and join the processing thread if it's running
     private void stopAndReleaseThread() {
-        if (processingThread != null && processingThread.isAlive()) {
-            Log.d(TAG, "Interrupting and joining previous processing thread...");
+        Thread threadToStop = processingThread; // Capture current thread reference
+        if (threadToStop != null && threadToStop.isAlive()) {
+            Log.d(TAG, "Signaling and joining previous processing thread...");
             isTesting = false; // Set flags to signal thread
             isBaselineRecording = false;
-            processingThread.interrupt(); // Interrupt if it's stuck waiting
+            threadToStop.interrupt(); // Interrupt if it's blocked (e.g., in read())
             try {
-                processingThread.join(200); // Wait a short time for thread to die
+                threadToStop.join(200); // Wait a short time
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 Log.e(TAG, "Interrupted while joining processing thread.", e);
             }
-            if (processingThread.isAlive()) {
+            if (threadToStop.isAlive()) {
                 Log.w(TAG, "Processing thread did not terminate after join.");
             }
-            processingThread = null;
         }
+        processingThread = null; // Ensure reference is cleared
     }
 
 
@@ -412,9 +393,6 @@ public class AudioProcessor {
 
     /**
      * Checks if the AudioProcessor has successfully initialized the AudioRecord.
-     * Use this in the fragment instead of checking internal state directly.
-     *
-     * @return true if AudioRecord is initialized, false otherwise.
      */
     public boolean isReady() {
         return audioRecord != null && audioRecord.getState() == AudioRecord.STATE_INITIALIZED;
@@ -422,28 +400,23 @@ public class AudioProcessor {
 
     /**
      * Releases the AudioRecord resource and attempts to clean up the processing thread.
-     * Call this when the associated fragment/component is destroyed (e.g., in onDestroyView).
      */
     public void release() {
         Log.d(TAG, "Releasing AudioProcessor resources...");
-        // 1. Signal any running thread to stop and wait briefly for it
-        stopAndReleaseThread();
-
-        // 2. Ensure recording state flags are false
-        isTesting = false;
+        stopAndReleaseThread(); // Stop thread first
+        isTesting = false; // Ensure flags are false
         isBaselineRecording = false;
 
-        // 3. Safely stop (if needed) and release the AudioRecord instance
         if (audioRecord != null) {
-            stopRecordingInternal(); // Try to stop first if somehow still recording
+            AudioRecord recordToRelease = audioRecord; // Use temp var
+            audioRecord = null; // Nullify main reference
             try {
+                stopRecordingInternal(); // Call internal stop (checks state) before release
                 Log.d(TAG,"Releasing AudioRecord instance...");
-                audioRecord.release(); // Release native resources
+                recordToRelease.release();
                 Log.d(TAG,"AudioRecord instance released.");
-            } catch (Exception e) { // Catch potential errors during final release
+            } catch (Exception e) {
                 Log.e(TAG, "Exception during final AudioRecord release: " + e.getMessage(), e);
-            } finally {
-                audioRecord = null; // Nullify the reference
             }
         } else {
             Log.d(TAG,"AudioRecord was already null during release.");
@@ -452,40 +425,31 @@ public class AudioProcessor {
 
 
     // --- Calculation Helpers (Keep existing) ---
-    private void applyHanningWindow(short[] buffer, int validSamples) {
+    private void applyHanningWindow(short[] buffer, int validSamples) { /* ... no change ... */
         for (int n = 0; n < validSamples; n++) {
             double multiplier = 0.5 * (1 - Math.cos(2 * Math.PI * n / (validSamples - 1)));
             buffer[n] = (short) (buffer[n] * multiplier);
         }
     }
-
-    private double calculatePower(short[] buffer, int validSamples) {
+    private double calculatePower(short[] buffer, int validSamples) { /* ... no change ... */
         double sumOfSquares = 0.0;
         for (int i = 0; i < validSamples; i++) {
-            // Avoid overflow by casting to double *before* squaring
             double sample = buffer[i];
             sumOfSquares += (sample * sample);
         }
-        // Prevent division by zero if validSamples is 0
         return (validSamples > 0) ? (sumOfSquares / validSamples) : 0.0;
     }
-
-
-    private double calculateSNR(double signalPower, double noisePower) {
-        if (noisePower <= 0) { // Handle noise being zero or negative
-            // Return max SNR or a very large value if signal is present, 0 otherwise
+    private double calculateSNR(double signalPower, double noisePower) { /* ... no change ... */
+        if (noisePower <= 0) {
             return (signalPower > 0) ? 100.0 : 0.0;
         }
         double ratio = signalPower / noisePower;
-        if (ratio <= 0) { // Handle signal power being zero or less than noise (log undefined/negative)
+        if (ratio <= 0) {
             return 0.0;
         }
-        // Calculate SNR in dB
         double snr = 10 * Math.log10(ratio);
-        // Clamp the result to a reasonable range, e.g., [0, 100] dB
         return Math.max(0.0, Math.min(100.0, snr));
     }
-
 
     // --- Callback Interfaces (Keep existing) ---
     public interface VoiceQualityTestingCallback { /* ... */
