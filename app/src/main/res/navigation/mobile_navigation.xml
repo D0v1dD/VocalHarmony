@@ -3,75 +3,68 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/mobile_navigation"
-    app:startDestination="@+id/navigation_home">
+    app:startDestination="@+id/navigation_training"> <fragment
+    android:id="@+id/navigation_home"
+    android:name="com.example.vocalharmony.ui.home.HomeFragment"
+    android:label="@string/title_home"
+    tools:layout="@layout/fragment_home" />
 
-    <!-- Home Fragment -->
-    <fragment
-        android:id="@+id/navigation_home"
-        android:name="com.example.vocalharmony.ui.home.HomeFragment"
-        android:label="@string/title_home"
-        tools:layout="@layout/fragment_home" />
-
-    <!-- Dashboard Fragment -->
     <fragment
         android:id="@+id/navigation_dashboard"
         android:name="com.example.vocalharmony.ui.dashboard.DashboardFragment"
         android:label="@string/title_dashboard"
         tools:layout="@layout/fragment_dashboard" />
 
-    <!-- Notifications Fragment -->
     <fragment
         android:id="@+id/navigation_notifications"
         android:name="com.example.vocalharmony.ui.notifications.NotificationsFragment"
         android:label="@string/title_notifications"
         tools:layout="@layout/fragment_notifications" />
 
-    <!-- Sound Fragment (How Do I Sound) -->
-    <fragment
-        android:id="@+id/navigation_sound"
-        android:name="com.example.vocalharmony.ui.notifications.NotificationsFragment"
-        android:label="How Do I Sound"
-        tools:layout="@layout/fragment_sound" />
-
-    <!-- AccessDataFragment -->
     <fragment
         android:id="@+id/navigation_data"
         android:name="com.example.vocalharmony.ui.home.AccessDataFragment"
         android:label="Access Data"
         tools:layout="@layout/fragment_access_data">
-
-        <!-- Action from AccessDataFragment -> GraphFragment -->
         <action
             android:id="@+id/action_navigation_data_to_graphFragment"
             app:destination="@id/graphFragment" />
     </fragment>
 
-    <!-- Training Fragment -->
     <fragment
         android:id="@+id/navigation_training"
         android:name="com.example.vocalharmony.ui.home.TrainingFragment"
         android:label="Training"
-        tools:layout="@layout/fragment_training" />
+        tools:layout="@layout/fragment_training" >
+        <action
+            android:id="@+id/action_trainingFragment_to_voiceQualityFragment"
+            app:destination="@id/navigation_voice_quality" />
+    </fragment>
 
-    <!-- RecordYourself Fragment -->
     <fragment
         android:id="@+id/navigation_record_yourself"
         android:name="com.example.vocalharmony.ui.home.RecordYourselfFragment"
         android:label="Record Yourself"
         tools:layout="@layout/fragment_record_yourself" />
 
-    <!-- VoiceQualityFragment -->
     <fragment
         android:id="@+id/navigation_voice_quality"
-        android:name="com.example.vocalharmony.ui.VoiceQualityFragment"
-        android:label="Voice Quality"
-        tools:layout="@layout/fragment_voice_quality" />
+        android:name="com.example.vocalharmony.ui.VoiceQualityFragment" android:label="Voice Quality"
+        tools:layout="@layout/fragment_voice_quality" >
+        <action
+            android:id="@+id/action_voiceQualityFragment_to_microphoneTestFragment"
+            app:destination="@id/navigation_microphone_test" />
+    </fragment>
 
-    <!-- GraphFragment (Future) -->
+    <fragment
+        android:id="@+id/navigation_microphone_test"
+        android:name="com.example.vocalharmony.ui.home.MicrophoneTestFragment"
+        android:label="@string/title_microphone_test"
+        tools:layout="@layout/fragment_microphone_test" />
+
     <fragment
         android:id="@+id/graphFragment"
-        android:name="com.example.vocalharmony.ui.GraphFragment"
-        android:label="Graph"
+        android:name="com.example.vocalharmony.ui.home.GraphFragment" android:label="Graph"
         tools:layout="@layout/fragment_graph" />
 
 </navigation>

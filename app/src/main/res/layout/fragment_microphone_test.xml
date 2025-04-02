@@ -4,78 +4,49 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="16dp">
+    android:padding="16dp"
+    tools:context=".ui.home.MicrophoneTestFragment"> <TextView
+    android:id="@+id/test_feedback"
+    android:layout_width="0dp"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="16dp"
+    android:gravity="center"
+    android:text="Press 'Record Baseline' in a quiet environment."
+    android:textAppearance="?attr/textAppearanceBody1"
+    app:layout_constraintEnd_toEndOf="parent"
+    app:layout_constraintStart_toStartOf="parent"
+    app:layout_constraintTop_toTopOf="parent" />
 
-    <TextView
-        android:id="@+id/test_feedback"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
-        android:text="Feedback will appear here"
-        android:visibility="gone"
-        app:layout_constraintBottom_toTopOf="@+id/baseline_quality_label"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_chainStyle="packed" />
-
-    <!-- 🔹 Baseline Quality Label -->
     <TextView
         android:id="@+id/baseline_quality_label"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="4dp"
+        android:layout_marginTop="32dp"
         android:text="@string/baseline_quality_label"
-        android:textStyle="bold"
-        app:layout_constraintBottom_toTopOf="@+id/baseline_quality_level"
+        android:textAppearance="?attr/textAppearanceHeadline6"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/test_feedback" />
 
-    <!-- 🔹 Baseline Quality Level (Fix for Missing ID) -->
     <TextView
         android:id="@+id/baseline_quality_level"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="N/A"
-        android:textSize="16sp"
-        android:textColor="@android:color/black"
-        app:layout_constraintBottom_toTopOf="@+id/button_record_baseline"
+        android:layout_marginTop="8dp"
+        android:text=""
+        tools:text="Good (Level 2)" android:textAppearance="?attr/textAppearanceBody1"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/baseline_quality_label" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/button_record_baseline"
-        android:layout_width="0dp"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"
+        android:layout_marginTop="24dp"
         android:text="@string/record_baseline"
-        app:layout_constraintBottom_toTopOf="@+id/button_start_test"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/baseline_quality_level" />
-
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/button_start_test"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"
-        android:text="@string/start_microphone_test"
-        app:layout_constraintBottom_toTopOf="@+id/button_stop_test"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/button_record_baseline" />
-
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/button_stop_test"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:text="@string/stop_microphone_test"
-        android:visibility="gone"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/button_start_test" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

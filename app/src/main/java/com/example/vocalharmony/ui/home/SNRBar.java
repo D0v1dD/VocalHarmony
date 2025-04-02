@@ -10,58 +10,53 @@ import android.graphics.Shader;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.View;
-
+import androidx.annotation.NonNull; // Import NonNull
+import androidx.annotation.Nullable; // Import Nullable for attrs/defStyleAttr
 import androidx.core.content.ContextCompat;
-
 import com.example.vocalharmony.R;
+import java.util.Locale; // <<< ADDED IMPORT
 
 public class SNRBar extends View {
 
     private static final String TAG = "SNRBar";
-    private static final float SNR_MIN_DB = 0f;  // Set minimum SNR to 0
-    private static final float SNR_MAX_DB = 100f; // Set max SNR to 100
+    private static final float SNR_MIN_DB = 0f;
+    private static final float SNR_MAX_DB = 100f;
 
-    private float currentSNR = SNR_MIN_DB;
-    private float maxSNR = SNR_MIN_DB;  // Track max SNR
+    private float currentAnimatedSNR = SNR_MIN_DB;
+    private float currentMaxSNRToDraw = SNR_MIN_DB;
+
+    // Keep fields - Ignore "can be local variable" warning for these
     private Paint snrPaint;
     private Paint maxSNRPaint;
-    private Paint textPaint;
     private LinearGradient gradient;
     private ValueAnimator animator;
     private RectF barRect;
 
-    public SNRBar(Context context) {
+    // Constructors with annotations
+    public SNRBar(@NonNull Context context) { // Added NonNull
         super(context);
         init(context);
     }
 
-    public SNRBar(Context context, AttributeSet attrs) {
+    public SNRBar(@NonNull Context context, @Nullable AttributeSet attrs) { // Added NonNull/Nullable
         super(context, attrs);
         init(context);
     }
 
-    public SNRBar(Context context, AttributeSet attrs, int defStyleAttr) {
+    public SNRBar(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr) { // Added NonNull/Nullable
         super(context, attrs, defStyleAttr);
         init(context);
     }
 
-    private void init(Context context) {
+    private void init(@NonNull Context context) { // Added NonNull
         snrPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         maxSNRPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         barRect = new RectF();
 
-        int startColor = ContextCompat.getColor(context, R.color.snrbar_start_color);
-        int endColor = ContextCompat.getColor(context, R.color.snrbar_end_color);
-
-        gradient = new LinearGradient(0, 0, 0, 0, startColor, endColor, Shader.TileMode.CLAMP);
-        snrPaint.setShader(gradient);
+        // Gradient setup done in onSizeChanged
 
         maxSNRPaint.setColor(ContextCompat.getColor(context, R.color.max_snr_color));
         maxSNRPaint.setStrokeWidth(5f);
-
-        textPaint.setColor(ContextCompat.getColor(context, R.color.snrbar_text_color));
-        textPaint.setTextAlign(Paint.Align.CENTER);
     }
 
     @Override
@@ -72,71 +67,62 @@ public class SNRBar extends View {
         int endColor = ContextCompat.getColor(getContext(), R.color.snrbar_end_color);
         gradient = new LinearGradient(0, h, 0, 0, startColor, endColor, Shader.TileMode.CLAMP);
         snrPaint.setShader(gradient);
-
-        textPaint.setTextSize(h * 0.1f);
     }
 
     @Override
-    protected void onDraw(Canvas canvas) {
+    protected void onDraw(@NonNull Canvas canvas) { // Added NonNull
         super.onDraw(canvas);
 
-        float normalizedSNR = normalizeSNR(currentSNR);
-        float barHeight = getHeight() * normalizedSNR;
+        int viewWidth = getWidth();
+        int viewHeight = getHeight();
 
-        barRect.set(0, getHeight() - barHeight, getWidth(), getHeight());
+        float normalizedCurrentSNR = normalizeSNR(currentAnimatedSNR);
+        float barHeight = viewHeight * normalizedCurrentSNR;
+        barRect.set(0, viewHeight - barHeight, viewWidth, viewHeight);
         canvas.drawRect(barRect, snrPaint);
 
-        float maxSNRHeight = getHeight() * normalizeSNR(maxSNR);
-        canvas.drawLine(0, getHeight() - maxSNRHeight, getWidth(), getHeight() - maxSNRHeight, maxSNRPaint);
-
-        String snrText = getSNRRating(currentSNR);
-        if (currentSNR <= SNR_MIN_DB) {
-            snrText = "No Signal";
-        }
-
-        canvas.drawText(snrText, getWidth() / 2f, getHeight() * 0.85f, textPaint);
+        float normalizedMaxSNR = normalizeSNR(currentMaxSNRToDraw);
+        float maxLineY = viewHeight * (1 - normalizedMaxSNR);
+        canvas.drawLine(0, maxLineY, viewWidth, maxLineY, maxSNRPaint);
     }
 
-    public void setSNRValue(final double snrValue) {
-        float newSNR = (float) Math.max(SNR_MIN_DB, Math.min(snrValue, SNR_MAX_DB));
+    public void setSNRValue(final double currentSnrValue, final double maxSnrValue) {
+        float newTargetSNR = (float) Math.max(SNR_MIN_DB, Math.min(currentSnrValue, SNR_MAX_DB));
+        currentMaxSNRToDraw = (float) Math.max(SNR_MIN_DB, Math.min(maxSnrValue, SNR_MAX_DB));
 
-        Log.d(TAG, "setSNRValue: Received SNR = " + snrValue + ", Clamped SNR = " + newSNR);
+        // Use Locale.US for consistency in logging format if needed, otherwise Locale.getDefault() is often fine
+        Log.d(TAG, String.format(Locale.US,"setSNRValue: Received Current=%.1f, Max=%.1f -> Clamped Target=%.1f, MaxToDraw=%.1f",
+                currentSnrValue, maxSnrValue, newTargetSNR, currentMaxSNRToDraw));
 
-        if (Math.abs(newSNR - currentSNR) > 0.1) {
+        if (Math.abs(newTargetSNR - currentAnimatedSNR) > 0.1f) {
             if (animator != null) {
                 animator.cancel();
             }
-
-            animator = ValueAnimator.ofFloat(currentSNR, newSNR);
-            animator.setDuration(300);
+            animator = ValueAnimator.ofFloat(currentAnimatedSNR, newTargetSNR);
+            animator.setDuration(200);
             animator.addUpdateListener(animation -> {
-                currentSNR = (float) animation.getAnimatedValue();
-                maxSNR = Math.max(maxSNR, currentSNR);
-                Log.d(TAG, "setSNRValue: Current SNR = " + currentSNR + ", Max SNR = " + maxSNR);
+                currentAnimatedSNR = (float) animation.getAnimatedValue();
                 invalidate();
             });
             animator.start();
+        } else {
+            invalidate();
         }
     }
 
     private float normalizeSNR(float snrDb) {
-        return (snrDb - SNR_MIN_DB) / (SNR_MAX_DB - SNR_MIN_DB);
+        float range = SNR_MAX_DB - SNR_MIN_DB;
+        // REMOVED redundant check: if (range <= 0f) return 0f;
+        float clampedSnr = Math.max(SNR_MIN_DB, Math.min(snrDb, SNR_MAX_DB));
+        // Added safety check for range still (though unlikely with constants)
+        if (range == 0f) return 0f;
+        return (clampedSnr - SNR_MIN_DB) / range;
     }
 
-    private String getSNRRating(float snrValue) {
-        if (snrValue <= SNR_MIN_DB) return "No Signal";
-        if (snrValue < 20) return "Very Poor";
-        if (snrValue < 40) return "Poor";
-        if (snrValue < 60) return "Fair";
-        if (snrValue < 75) return "Good";
-        if (snrValue < 90) return "Very Good";
-        return "Excellent";
-    }
-
-    // Resets SNR bar and clears max SNR tracking
     public void reset() {
-        currentSNR = SNR_MIN_DB;
-        maxSNR = SNR_MIN_DB;
+        Log.d(TAG, "Resetting SNRBar state.");
+        currentAnimatedSNR = SNR_MIN_DB;
+        currentMaxSNRToDraw = SNR_MIN_DB;
         if (animator != null) {
             animator.cancel();
         }
