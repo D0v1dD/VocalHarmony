@@ -23,6 +23,9 @@
     <color name="mic_on_color">#4CAF50</color>
 
 
+
+
+
     <color name="max_snr_color">#FF0000</color> <!-- Replace with desired color -->
     <color name="snrbar_text_color">#FFFFFF</color> <!-- Replace with desired color -->
     <color name="snrbar_start_color">#00FF00</color> <!-- Replace with desired color -->

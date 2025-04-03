@@ -4,40 +4,40 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.MenuItem;
 // Removed unused Toast import
-// import android.widget.Toast;
 
-import androidx.annotation.NonNull; // Keep NonNull
+import androidx.annotation.NonNull; // Keep NonNull if needed by super methods, otherwise remove
 import androidx.appcompat.app.AppCompatActivity;
 
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
-import androidx.navigation.ui.AppBarConfiguration; // Keep this import
+import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
 
 import com.example.vocalharmony.databinding.ActivityMainBinding;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
-import java.util.HashSet; // Import HashSet
-import java.util.Set; // Import Set
+import java.util.HashSet;
+import java.util.Set;
 
 
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";
     private ActivityMainBinding binding;
-    private AppBarConfiguration appBarConfiguration; // Keep as member variable
+    // appBarConfiguration might not be strictly needed anymore if not setting up ActionBar
+    // private AppBarConfiguration appBarConfiguration;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) { // Removed @NonNull here, not typical for onCreate
+    protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        BottomNavigationView navView = binding.navView; // Use binding
+        BottomNavigationView navView = binding.navView;
 
-        // --- Define the set of top-level destination IDs ---
-        // --- These MUST match the IDs in your UPDATED bottom_nav_menu.xml ---
+        // Define the set of top-level destination IDs - Still needed for correct
+        // highlighting and behavior of the BottomNavigationView even without an ActionBar.
         Set<Integer> topLevelDestinations = new HashSet<>();
         topLevelDestinations.add(R.id.navigation_training);
         topLevelDestinations.add(R.id.navigation_microphone_test);
@@ -46,19 +46,25 @@ public class MainActivity extends AppCompatActivity {
         topLevelDestinations.add(R.id.navigation_data);
         // Add any other fragments directly accessible from the bottom bar
 
-        // --- Build AppBarConfiguration with the dynamic set ---
-        appBarConfiguration = new AppBarConfiguration.Builder(topLevelDestinations).build();
+        // --- We might still need AppBarConfiguration for setupWithNavController if it influences highlighting,
+        // --- but we won't use it with the (non-existent) ActionBar. Let's keep it for now.
+        AppBarConfiguration appBarConfiguration = new AppBarConfiguration.Builder(topLevelDestinations).build();
 
-        // --- Setup NavController and link UI components ---
+        // --- Setup NavController and link BottomNavigationView ---
         NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_activity_main);
-        NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration); // Setup ActionBar (optional but good)
-        NavigationUI.setupWithNavController(navView, navController); // Setup BottomNavigationView
+
+        // *** REMOVED/COMMENTED OUT the line causing the crash ***
+        // NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
+
+        // *** KEEP this line to make the BottomNavigationView work ***
+        NavigationUI.setupWithNavController(navView, navController);
 
         Log.d(TAG, "MainActivity created. Navigation setup complete.");
     }
 
-    // Removed permission checking methods (should be handled in Fragments)
 
+    // *** COMMENTED OUT as it's related to ActionBar menu items ***
+    /*
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_activity_main);
@@ -66,13 +72,16 @@ public class MainActivity extends AppCompatActivity {
         return NavigationUI.onNavDestinationSelected(item, navController)
                 || super.onOptionsItemSelected(item);
     }
+    */
 
+    // *** COMMENTED OUT as it's related to the ActionBar's Up button ***
+    /*
     @Override
     public boolean onSupportNavigateUp() {
-        // Handles the Up button in the ActionBar
         NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_activity_main);
-        // Uses the member variable appBarConfiguration correctly
-        return NavigationUI.navigateUp(navController, appBarConfiguration)
+        // NavigationUI.navigateUp needs the AppBarConfiguration, but won't be called without an ActionBar
+        return NavigationUI.navigateUp(navController, appBarConfiguration) // Use local var if member removed
                 || super.onSupportNavigateUp();
     }
+    */
 }

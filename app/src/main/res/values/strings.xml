@@ -15,7 +15,10 @@
     <string name="audio_system_not_ready">Audio system is not ready. Please try again.</string> <string name="baseline_recording_failed">Baseline recording failed.</string> <string name="status_error_playback">Error playing audio</string>
     <string name="status_error_recording">Error during recording</string>
     <string name="status_error_saving">Error saving file</string>
-
+    <string name="graph_title_history">Historical Max SNR Values</string>
+    <string name="graph_loading_data">Loading SNR history...</string>
+    <string name="graph_no_data">No historical SNR data found.</string>
+    <string name="graph_init_error">Error initializing graph view.</string>
     <string name="title_home">Home</string>
     <string name="title_microphone_test">Microphone Test</string>
     <string name="title_record_yourself">Record Audio</string>
