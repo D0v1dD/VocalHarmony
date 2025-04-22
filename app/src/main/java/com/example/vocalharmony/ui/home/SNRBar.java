@@ -20,7 +20,7 @@ public class SNRBar extends View {
 
     private static final String TAG = "SNRBar";
     private static final float SNR_MIN_DB = 0f;
-    private static final float SNR_MAX_DB = 100f;
+    private static final float SNR_MAX_DB = 30f;
 
     private float currentAnimatedSNR = SNR_MIN_DB;
     private float currentMaxSNRToDraw = SNR_MIN_DB;

@@ -10,19 +10,21 @@
 
     <Button
         android:id="@+id/button_voice_quality"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_width="250dp"
+        android:layout_height="60dp"
         android:layout_marginTop="32dp"
-        android:text="@string/button_text_voice_quality" app:layout_constraintEnd_toEndOf="parent"
+        android:text="@string/button_text_voice_quality"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
     <Button
         android:id="@+id/button_word_enunciation"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_width="250dp"
+        android:layout_height="60dp"
         android:layout_marginTop="16dp"
-        android:text="@string/button_text_word_enunciation" app:layout_constraintEnd_toEndOf="parent"
+        android:text="@string/button_text_word_enunciation"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/button_voice_quality" />
 

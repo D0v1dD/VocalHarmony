@@ -16,7 +16,8 @@
             android:id="@+id/mic_status_indicator"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="8dp"
             android:contentDescription="@string/mic_status_desc"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
@@ -24,8 +25,8 @@
 
         <com.example.vocalharmony.ui.home.SNRBar
             android:id="@+id/snr_bar"
-            android:layout_width="222dp"
-            android:layout_height="124dp"
+            android:layout_width="157dp"
+            android:layout_height="137dp"
             android:layout_marginTop="16dp"
             android:contentDescription="@string/snr_bar_description"
             app:layout_constraintEnd_toEndOf="parent"
@@ -66,8 +67,10 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/button_start_snr"
-            android:layout_width="0dp" android:layout_height="wrap_content"
-            android:layout_marginTop="24dp" android:layout_marginEnd="8dp"
+            android:layout_width="150dp"
+            android:layout_height="60dp"
+            android:layout_marginTop="24dp"
+            android:layout_marginEnd="8dp"
             android:text="@string/start_snr_test"
             app:layout_constraintEnd_toStartOf="@+id/guideline_buttons_vq"
             app:layout_constraintStart_toStartOf="parent"
@@ -82,8 +85,10 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/button_reset"
-            android:layout_width="0dp" android:layout_height="wrap_content"
-            android:layout_marginStart="8dp" android:text="@string/reset_button_label"
+            android:layout_width="150dp"
+            android:layout_height="60dp"
+            android:layout_marginStart="8dp"
+            android:text="@string/reset_button_label"
             app:layout_constraintBottom_toBottomOf="@id/button_start_snr"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toEndOf="@+id/guideline_buttons_vq"

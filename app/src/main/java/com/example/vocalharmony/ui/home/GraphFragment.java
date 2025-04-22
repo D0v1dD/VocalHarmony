@@ -124,7 +124,7 @@ public class GraphFragment extends Fragment {
         YAxis leftAxis = historyLineChart.getAxisLeft();
         leftAxis.setDrawGridLines(true);
         leftAxis.setAxisMinimum(0f);
-        leftAxis.setAxisMaximum(100f);
+        leftAxis.setAxisMaximum(30f);
         historyLineChart.getAxisRight().setEnabled(false);
         // No data text unchanged...
         historyLineChart.setNoDataText(getString(R.string.graph_loading_data));

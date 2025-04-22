@@ -335,13 +335,13 @@ public class AudioProcessor {
         for (int i = 0; i < validSamples; i++) { double sample = buffer[i]; sumOfSquares += (sample * sample); }
         return sumOfSquares / validSamples;
     }
-
+//The calculateSNR was previously set to 100 incase 30 doesnt work
     /** Calculates SNR in dB */
     private double calculateSNR(double signalPower, double noisePower) {
-        if (noisePower <= 1e-10) { return (signalPower > 1e-10) ? 100.0 : 0.0; }
+        if (noisePower <= 1e-10) { return (signalPower > 1e-10) ? 30.0 : 0.0; }
         if (signalPower <= 1e-10) { return 0.0; }
         double ratio = signalPower / noisePower; if (ratio <= 1.0) { return 0.0; }
-        double snr = 10.0 * Math.log10(ratio); return Math.max(0.0, Math.min(100.0, snr));
+        double snr = 10.0 * Math.log10(ratio); return Math.max(0.0, Math.min(30.0, snr));
     }
 
     // --- Callback Interfaces ---

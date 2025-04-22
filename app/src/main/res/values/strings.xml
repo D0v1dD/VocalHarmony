@@ -10,6 +10,10 @@
     <string name="mic_permission_denied_message">Permission denied. Cannot record baseline.</string>
     <string name="mic_status_desc">Microphone Status</string>
     <string name="mic_status_description">Microphone Permission Status</string>
+    <string name="button_home_training">Training</string>
+    <string name="button_home_how_sound">How Do I Sound?</string>
+    <string name="button_home_saved_files">Saved Files</string>
+    <string name="button_home_access_data">Access Data</string>
 
     <string name="audio_processor_error">Error initializing microphone. Please try again.</string>
     <string name="audio_system_not_ready">Audio system is not ready. Please try again.</string> <string name="baseline_recording_failed">Baseline recording failed.</string> <string name="status_error_playback">Error playing audio</string>
@@ -23,6 +27,28 @@
     <string name="title_microphone_test">Microphone Test</string>
     <string name="title_record_yourself">Record Audio</string>
     <string name="title_dashboard">Dashboard</string> <string name="title_notifications">Notifications</string>
+
+        <string name="hint_enter_new_name">Enter new name</string>
+        <string name="dialog_rename_title">Rename Recording</string>
+        <string name="dialog_rename_button">Rename</string>
+        <string name="error_invalid_filename">Invalid filename entered.</string>
+        <string name="rename_success">Renamed successfully.</string>
+        <string name="error_rename_failed">Could not rename file.</string>
+        <string name="error_rename_file_exists">A file with that name already exists.</string>
+
+
+    <string name="content_desc_play_recording">Play Recording</string>
+    <string name="content_desc_share_recording">Share Recording</string>
+    <string name="content_desc_delete_recording">Delete Recording</string>
+    <string name="content_desc_recordings_list">List of saved audio recordings</string>
+
+    <string name="recording_status_text">Recording…</string>
+    <string name="stop_recording_button">Stop</string>
+
+    <string name="dialog_delete_title">Delete Recording?</string>
+    <string name="dialog_delete_message">Are you sure you want to delete \'%s\'?</string> <string name="share_subject">VocalHarmony Recording: %s</string> <string name="share_title">Share Recording via</string>
+    <string name="error_sharing_setup_issue">Error: Sharing configuration problem. Check FileProvider setup.</string>
+    <string name="error_accessing_storage">Error accessing storage.</string>
 
     <string name="record_baseline">Record Baseline</string>
     <string name="recording_baseline_button_text">Recording Baseline...</string>
@@ -71,4 +97,47 @@
     <string name="button_text_word_enunciation">Word Enunciation Practice</string>
     <string name="app_toolbar_description">App Toolbar</string>
 
+
+    <string name="status_playback_stopped">Playback stopped</string>
+    <string name="status_sharing">Sharing...</string>
+    <string name="status_stopped_no_data">Recording stopped (no data saved)</string>
+
+    <string name="permission_denied_cant_record">Permission denied. Cannot record.</string>
+    <string name="permission_needed_to_record">Recording permission needed</string>
+    <string name="status_error_recorder_config">Error: Recorder configuration failed</string>
+    <string name="status_error_recorder_init">Error: Recorder initialization failed</string>
+    <string name="status_error_permission_lost">Error: Permission lost</string>
+    <string name="status_error_permission_issue">Error: Permission issue</string>
+    <string name="status_error_recorder_unsupported">Error: Recording configuration not supported</string>
+    <string name="status_error_starting_recorder">Error: Failed to start recorder</string>
+    <string name="status_error_saving_header">Error finalizing recording file</string>
+    <string name="status_error_reading_mic">Error reading from microphone</string>
+    <string name="status_error_preparing_playback">Error preparing playback</string>
+    <string name="status_error_share_file_missing">Error: Recording file missing</string>
+    <string name="status_error_sharing_no_app">Error: No app found for sharing</string>
+    <string name="status_error_sharing_failed">Error: Sharing failed</string>
+    <string name="status_error_sharing_setup_issue">Error: Sharing configuration problem</string>
+    <string name="status_error_accessing_storage">Error accessing storage</string>
+
+
+
+    <string name="permission_required_to_record">Recording permission is required to record audio.</string>
+    <string name="permission_rationale_recording">Recording permission allows saving audio messages.</string>
+
+    <string name="recording_saved_success">Recording saved</string>
+    <string name="error_recorder_init_failed">Audio recorder failed to initialize.</string>
+    <string name="error_recorder_permission">Permission issue starting recorder.</string>
+    <string name="error_recorder_invalid_params">Invalid recorder parameters.</string>
+    <string name="error_recorder_unsupported_config">Audio configuration not supported on this device.</string>
+    <string name="error_recorder_start_failed">Could not start recorder.</string>
+    <string name="error_deleting_file">Could not delete file.</string>
+    <string name="error_invalid_file">Invalid file for playback.</string>
+    <string name="error_stop_recording_to_play">Stop recording before playing.</string>
+    <string name="error_playback_failed">Error playing audio.</string>
+    <string name="error_preparing_playback_failed">Error preparing playback.</string>
+    <string name="error_cannot_share_item">Cannot share this item.</string>
+    <string name="error_share_file_missing">Recording file missing or empty.</string>
+    <string name="error_no_app_for_sharing">No app found to handle sharing audio.</string>
+    <string name="error_sharing_failed">Could not share recording.</string>
+    <string name="error_loading_item">Error</string>
 </resources>
