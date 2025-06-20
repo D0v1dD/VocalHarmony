@@ -14,6 +14,17 @@
     <string name="button_home_how_sound">How Do I Sound?</string>
     <string name="button_home_saved_files">Saved Files</string>
     <string name="button_home_access_data">Access Data</string>
+// Note
+    <string name="tutorial_dashboard_description">
+        <![CDATA[
+        <b>App Training Feature</b><br/><br/>
+        For the training voice quality button will record the baseline for 5 seconds. During this time the electrolarynx is places onto your throat with the mouth closed to gather noise. Once completed the SNR Ratio test can begin and will display a dB value of clarity. [Insert video link displaying use].<br/><br/>
+        <b>How Do I Sound?</b><br/>
+        Found within the Home Button the "How Do I Sound" button allows you to record yourself using the electrolarynx. It is included to record electrolarynx speech and can be replayed and shared.<br/><br/>
+        <b>Access Data Button </b><br/>
+        Accessible from the home button the Access Data Button shows your most recent and previous scores achieved using the training feature. Pressing the graph button will show a timeline for the previous and latest scores from voice quality.
+        ]]>
+    </string>
 
     <string name="audio_processor_error">Error initializing microphone. Please try again.</string>
     <string name="audio_system_not_ready">Audio system is not ready. Please try again.</string> <string name="baseline_recording_failed">Baseline recording failed.</string> <string name="status_error_playback">Error playing audio</string>
@@ -26,7 +37,7 @@
     <string name="title_home">Home</string>
     <string name="title_microphone_test">Microphone Test</string>
     <string name="title_record_yourself">Record Audio</string>
-    <string name="title_dashboard">Dashboard</string> <string name="title_notifications">Notifications</string>
+    <string name="title_dashboard">Tutorial</string> <string name="title_notifications">Notifications</string>
 
         <string name="hint_enter_new_name">Enter new name</string>
         <string name="dialog_rename_title">Rename Recording</string>
@@ -35,6 +46,37 @@
         <string name="rename_success">Renamed successfully.</string>
         <string name="error_rename_failed">Could not rename file.</string>
         <string name="error_rename_file_exists">A file with that name already exists.</string>
+
+        <string name="record_button_start">Record</string>
+        <string name="record_button_stop">Stop Recording</string>
+        <string name="save_button_text">Save &amp; Upload</string> <string name="next_sentence_button_text">Next Sentence</string>
+    <string-array name="rainbow_passage_sentences">
+        <item>When the sunlight strikes raindrops in the air, they act as a prism and form a rainbow.</item>
+        <item>The rainbow is a division of white light into many beautiful colors.</item>
+        <item>These take the shape of a long round arch, with its path high above, and its two ends apparently beyond the horizon.</item>
+        <item>There is, according to legend, a boiling pot of gold at one end.</item>
+        <item>People look, but no one ever finds it.</item>
+        <item>When a man looks for something beyond his reach, his friends say he is looking for the pot of gold at the end of the rainbow.</item>
+        <item>Throughout the centuries people have explained the rainbow in various ways.</item>
+        <item>Some have accepted it as a miracle without physical explanation.</item>
+        <item>To the Hebrews it was a token that there would be no more universal floods.</item>
+        <item>The Greeks used to imagine that it was a sign from the gods to foretell war or heavy rain.</item>
+        <item>The Norsemen considered the rainbow as a bridge over which the gods passed from earth to their home in the sky.</item>
+        <item>Others have tried to explain the phenomenon physically.</item>
+        <item>Aristotle thought that the rainbow was caused by reflection of the sun\'s rays by the rain.</item> <item>Since then physicists have found that it is not reflection, but refraction by the raindrops which causes the rainbows.</item>
+        <item>Many complicated ideas about the rainbow have been formed.</item>
+        <item>The difference in the rainbow depends considerably upon the size of the drops, and the width of the colored band increases as the size of the drops increases.</item>
+        <item>The actual primary rainbow observed is said to be the effect of super-imposition of a number of bows.</item>
+        <item>If the red of the second bow falls upon the green of the first, the result is to give a bow with an abnormally wide yellow band, since red and green light when mixed form yellow.</item>
+        <item>This is a very common type of bow, one showing mainly red and yellow, with little or no green or blue.</item>
+    </string-array>
+        <string name="status_prompt_ready">Tap Record to start</string>
+        <string name="status_prompt_recording">Recording…</string>
+        <string name="status_prompt_stopped">Stopped. Tap Save or Next.</string>
+        <string name="status_prompt_saving">Saving…</string>
+        <string name="status_prompt_uploading">Uploading…</string>
+        <string name="status_prompt_complete">Saved &amp; Uploaded Successfully</string>
+        <string name="status_prompt_error_prefix">Error: </string>
 
 
     <string name="content_desc_play_recording">Play Recording</string>
@@ -101,7 +143,7 @@
     <string name="status_playback_stopped">Playback stopped</string>
     <string name="status_sharing">Sharing...</string>
     <string name="status_stopped_no_data">Recording stopped (no data saved)</string>
-
+    <string name="status_error_prefix">Error: </string>
     <string name="permission_denied_cant_record">Permission denied. Cannot record.</string>
     <string name="permission_needed_to_record">Recording permission needed</string>
     <string name="status_error_recorder_config">Error: Recorder configuration failed</string>
@@ -118,8 +160,34 @@
     <string name="status_error_sharing_failed">Error: Sharing failed</string>
     <string name="status_error_sharing_setup_issue">Error: Sharing configuration problem</string>
     <string name="status_error_accessing_storage">Error accessing storage</string>
+    <string name="training_sentence_recording_button">Sentence Recording Practice</string>
 
 
+        <string name="consent_title">Data Contribution &amp; Consent</string>
+        <string name="consent_agree">Agree &amp; Continue</string>
+        <string name="consent_disagree">Disagree</string>
+        <string name="consent_feature_disabled">This feature requires your consent to collect recording data. It will remain disabled.</string>
+        <string name="consent_details_placeholder">
+        <![CDATA[
+        <b>Help Improve Electrolarynx Communication</b><br/><br/>
+        To help us research and potentially improve tools for electrolarynx users, this feature allows you to optionally contribute recordings of your voice while reading specific sentences.<br/><br/>
+        <b>What data is collected?</b><br/>
+        • Audio recordings of you reading the displayed sentences.<br/>
+        • The text of the sentence you read.<br/>
+        • An anonymous unique identifier for your app installation (does not personally identify you).<br/>
+        • Timestamps of the recordings.<br/><br/>
+        <b>How is the data used?</b><br/>
+        • The anonymized data will be analyzed by developers and researchers associated with this project.<br/>
+        • It may be used to understand speech patterns and potentially train machine learning models to improve electrolarynx-related applications or research.<br/><br/>
+        <b>How is the data stored?</b><br/>
+        • The anonymized audio files and associated text/metadata are uploaded and stored securely on Google Cloud Storage, linked to our Firebase project.<br/><br/>
+        <b>Your Control:</b><br/>
+        • Participation is completely voluntary.<br/>
+        • You can choose not to use this feature by selecting \"Disagree\".<br/>
+        <i>(Optional: Add details here if you provide a mechanism for data deletion requests, e.g., linking to a privacy policy or contact info).</i><br/><br/>
+        By clicking \"Agree & Continue\", you consent to the collection, storage, and use of your anonymized recording data as described above.
+        ]]>
+    </string>
 
     <string name="permission_required_to_record">Recording permission is required to record audio.</string>
     <string name="permission_rationale_recording">Recording permission allows saving audio messages.</string>
@@ -140,4 +208,13 @@
     <string name="error_no_app_for_sharing">No app found to handle sharing audio.</string>
     <string name="error_sharing_failed">Could not share recording.</string>
     <string name="error_loading_item">Error</string>
+
+    <string name="stt_button_start">Start Recording</string>
+    <string name="stt_button_stop">Stop &amp; Transcribe</string>
+    <string name="stt_status_ready">Tap "Start Recording" to begin.</string>
+    <string name="stt_status_recording">Recording...</string>
+    <string name="stt_status_processing">Recording stopped. Processing...</string>
+
+
+
 </resources>

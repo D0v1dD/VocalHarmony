@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "732423987752",
+    "project_id": "vocal-harmony-24b60",
+    "storage_bucket": "vocal-harmony-24b60.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:732423987752:android:fe820913d7b56da2540b1d",
+        "android_client_info": {
+          "package_name": "com.example.vocalharmony.devversionrecord"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBt1c688IrwgQv_b5Ake-wNnevR42WFc2I"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

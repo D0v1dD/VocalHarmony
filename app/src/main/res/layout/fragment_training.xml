@@ -6,17 +6,15 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:padding="16dp"
-    tools:context=".ui.home.TrainingFragment">
-
-    <Button
-        android:id="@+id/button_voice_quality"
-        android:layout_width="250dp"
-        android:layout_height="60dp"
-        android:layout_marginTop="32dp"
-        android:text="@string/button_text_voice_quality"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+    tools:context=".ui.home.TrainingFragment"> <Button
+    android:id="@+id/button_voice_quality"
+    android:layout_width="250dp"
+    android:layout_height="60dp"
+    android:layout_marginTop="32dp"
+    android:text="@string/button_text_voice_quality"
+    app:layout_constraintEnd_toEndOf="parent"
+    app:layout_constraintStart_toStartOf="parent"
+    app:layout_constraintTop_toTopOf="parent" />
 
     <Button
         android:id="@+id/button_word_enunciation"
@@ -28,4 +26,13 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/button_voice_quality" />
 
+    <Button
+        android:id="@+id/button_sentence_recording"
+        android:layout_width="250dp"
+        android:layout_height="60dp"
+        android:layout_marginTop="16dp"
+        android:text="@string/training_sentence_recording_button"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/button_word_enunciation" />
 </androidx.constraintlayout.widget.ConstraintLayout>
