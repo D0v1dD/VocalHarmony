@@ -1,8 +1,13 @@
 package com.example.vocalharmony; // Ensure this matches your package
 
+// --- Added Imports for Notification Channel ---
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.os.Build;
+// --- End Added Imports ---
+
 import android.os.Bundle;
 import android.util.Log;
-// import android.view.MenuItem; // Not needed unless ActionBar methods are uncommented
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -21,19 +26,15 @@ import com.google.firebase.auth.FirebaseUser;
 
 // Import R file
 import com.example.vocalharmony.R;
-// REMOVED ViewBinding Import
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 import java.util.HashSet;
 import java.util.Set;
 
-
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";
     private static final String AUTH_TAG = "MainActivityAuth";
-
-    // REMOVED binding variable
 
     private FirebaseAuth mAuth;
 
@@ -41,22 +42,16 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // Use traditional setContentView
-        setContentView(R.layout.activity_main); // Assumes layout is activity_main.xml
+        setContentView(R.layout.activity_main);
 
-        // --- Find views using findViewById ---
-        // *** CORRECTED the ID here to match activity_main.xml ***
-        BottomNavigationView navView = findViewById(R.id.nav_view); // Use nav_view (snake_case)
+        BottomNavigationView navView = findViewById(R.id.nav_view);
 
-        // Add null check for safety
         if (navView == null) {
             Log.e(TAG, "FATAL ERROR: BottomNavigationView with ID 'nav_view' not found in layout R.layout.activity_main");
             Toast.makeText(this, "Layout Error: Cannot find Navigation View", Toast.LENGTH_LONG).show();
-            return; // Prevent crash if view not found
+            return;
         }
 
-
-        // --- NavController Setup ---
         NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_activity_main);
 
         // Define top-level destinations
@@ -70,13 +65,13 @@ public class MainActivity extends AppCompatActivity {
 
         AppBarConfiguration appBarConfiguration = new AppBarConfiguration.Builder(topLevelDestinations).build();
 
-        // --- ActionBar Setup (Commented out as before) ---
-        // NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
-
         // --- Standard BottomNavigationView Handling ---
-        NavigationUI.setupWithNavController(navView, navController); // This should now work
+        NavigationUI.setupWithNavController(navView, navController);
 
-        Log.d(TAG, "MainActivity created. Using findViewById. Navigation setup complete.");
+        Log.d(TAG, "MainActivity created. Navigation setup complete.");
+
+        // --- ADDED: Create Notification Channel on startup ---
+        createNotificationChannel();
 
 
         // --- Firebase Anonymous Authentication Logic (Keep as before) ---
@@ -90,6 +85,32 @@ public class MainActivity extends AppCompatActivity {
         }
         // --- End Firebase Auth ---
     }
+
+    /**
+     * ADDED: Creates the Notification Channel for daily reminders.
+     * Required for Android 8.0 (API 26) and above.
+     */
+    private void createNotificationChannel() {
+        // Create the NotificationChannel, but only on API 26+ because
+        // the NotificationChannel class is new and not in the support library.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            CharSequence name = getString(R.string.notification_channel_name);
+            String description = getString(R.string.notification_channel_description);
+            int importance = NotificationManager.IMPORTANCE_DEFAULT;
+            // The ID "VocalHarmonyReminderChannel" must match the ID used in ReminderWorker
+            NotificationChannel channel = new NotificationChannel("VocalHarmonyReminderChannel", name, importance);
+            channel.setDescription(description);
+
+            // Register the channel with the system. You can't change the importance
+            // or other notification behaviors after this.
+            NotificationManager notificationManager = getSystemService(NotificationManager.class);
+            if (notificationManager != null) {
+                notificationManager.createNotificationChannel(channel);
+                Log.d(TAG, "Notification channel created.");
+            }
+        }
+    }
+
 
     /**
      * Anonymous Sign-in Method (Keep as before)

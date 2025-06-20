@@ -215,6 +215,19 @@
     <string name="stt_status_recording">Recording...</string>
     <string name="stt_status_processing">Recording stopped. Processing...</string>
 
+    <string-array name="daily_reminder_messages">
+        <item>A few minutes of practice can make a big difference. Ready to train?</item>
+        <item>Ready for today\'s vocal harmony practice?</item>
+        <item>Reminder: Consistent practice builds clearer speech!</item>
+        <item>Time for your daily electrolarynx exercise!</item>
+    </string-array>
 
+    <string name="notifications_title">Daily Reminders</string>
+    <string name="notifications_status_active">Daily reminders are ON.</string>
+    <string name="notifications_status_inactive">Daily reminders are OFF.</string>
+    <string name="button_schedule_reminders">Turn On Daily Reminders</string>
+    <string name="button_cancel_reminders">Turn Off Daily Reminders</string>
+    <string name="notification_channel_name">Vocal Harmony Reminders</string>
+    <string name="notification_channel_description">Daily reminders for practice sessions.</string>
 
 </resources>
